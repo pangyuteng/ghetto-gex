@@ -32,11 +32,16 @@ shared_dir = os.environ.get("SHARED_DIR")
 def is_test_func():
     return False if os.environ.get('IS_TEST') == 'FALSE' else True
 
-def get_session():
-    username = os.environ.get('TASTYTRADE_USERNAME')
-    password = os.environ.get('TASTYTRADE_PASSWORD')
+
+def get_session(remember_token=None,remember_me=True):
     is_test = is_test_func()
-    return Session(username,password,is_test=is_test)
+    username = os.environ.get('TASTYTRADE_USERNAME')
+    if remember_token is None:
+        password = os.environ.get('TASTYTRADE_PASSWORD')
+        return Session(username,password,remember_me=remember_me,is_test=is_test)
+    else:
+        return Session(username,remember_token=remember_token,is_test=is_test)
+        
 
 @dataclass
 class UnderlyingLivePrices:
@@ -284,3 +289,13 @@ def get_data_df(folder_path):
         gex_df_list.append(df)
     return underlying_df, gex_df_list
     
+if __name__ == "__main__":
+    ticker = sys.argv[1]
+    tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    workdir = os.path.join(shared_dir,ticker)
+    os.makedirs(workdir,exist_ok=True)
+    json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
+    session = get_session()
+    print(session.remember_token)
+    output = asyncio.run(cache_underlying(session,ticker,json_file))
+    print(json_file)

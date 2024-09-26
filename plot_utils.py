@@ -91,5 +91,5 @@ def plot_gex(ticker):
     return gex_png_file,price_png_file
 
 if __name__ == "__main__":
-    folder_path = sys.argv[1]
-    plot_gex(folder_path)
+    ticker = sys.argv[1]
+    plot_gex(ticker)
