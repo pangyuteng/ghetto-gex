@@ -27,7 +27,7 @@ app = Flask(__name__,
     static_folder='static',
     template_folder='templates',
 )
-
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 shared_dir = os.environ.get("SHARED_DIR")
 
 @app.route('/ping', methods=['GET'])
@@ -109,9 +109,9 @@ def png_file(ticker,kind):
     try:
         gex_png_file, price_png_file = get_png_file_paths(ticker)
         if kind == 'price':
-            return send_file(price_png_file,max_age=0)
+            return send_file(price_png_file,max_age=1)
         if kind == 'gex':
-            return send_file(gex_png_file,max_age=0)
+            return send_file(gex_png_file,max_age=1)
     except:
         return jsonify({"message":traceback.format_exc()})
 

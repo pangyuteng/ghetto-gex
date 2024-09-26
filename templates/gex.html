@@ -31,7 +31,7 @@
 
     <div hx-get="/underlying-ping", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
 
-    <div hx-get="/gex-plot", hx-trigger="load, every 2s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+    <div hx-get="/gex-plot", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
     <div id="pingOptionchain{{ticker}}"></div>
