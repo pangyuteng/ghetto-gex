@@ -13,7 +13,7 @@
   <body>
 
     {% if is_test %} 
-    <span class="badge text-bg-secondary">sandbox</span>
+    <span class="badge text-bg-warning">sandbox **delayed quotes**</span>
     {% else %}
     <span class="badge text-bg-success">production</span>
     {% endif %}
@@ -31,7 +31,7 @@
 
     <div hx-get="/underlying-ping", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
 
-    <div hx-get="/gex-plot", hx-trigger="load, every 5s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+    <div hx-get="/gex-plot", hx-trigger="load, every 2s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
     <div id="pingOptionchain{{ticker}}"></div>
