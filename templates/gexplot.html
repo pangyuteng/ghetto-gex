@@ -13,13 +13,7 @@
   <body>
     <h1>ghetto-live-gex</h1>
     <hr>
-    <div></div>
-    token {{ token }}
-    <br>
-    {{ message }}
-    <br>
-    <div hx-get="/gex-ping", hx-trigger="on, every 30s" hx-vals='{"token":"{{token}}"}' hx-target="#pingResponse" hx-swap="innerHTML"></div>
-    <div id="pingResponse"></div>
+
   </body>
 </html>
 
