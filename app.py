@@ -16,7 +16,7 @@ from flask import (
 
 import asyncio
 from data_utils import (
-    Session, get_session,
+    Session, get_session, is_test_func,
     cache_underlying, cache_option_chain,
     get_data_df,
 )
@@ -39,12 +39,13 @@ def index():
     message = None
     session = None
     try:
-        session = get_session()        
+        session = get_session()
+        is_test = is_test_func()
     except:
         app.logger.error(traceback.format_exc())
         message = "unable to login with credentials in .env file!"
 
-    return render_template('index.html',session=session,message=message)
+    return render_template('index.html',session=session,message=message,is_test=is_test)
 
 @app.route('/login', methods=['GET'])
 def login():
@@ -57,7 +58,8 @@ def login():
 def gex():
     tickers = request.args.to_dict()['tickers']
     ticker_list = [x.upper() for x in tickers.split(",") if len(x)>0]
-    return render_template('gex.html',ticker_list=ticker_list)
+    is_test = is_test_func()
+    return render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
 
 # setup cron via client side, yay or nay?
 @app.route('/underlying-ping', methods=['GET'])

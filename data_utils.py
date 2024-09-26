@@ -29,10 +29,13 @@ from tastytrade.dxfeed import EventType
 
 shared_dir = os.environ.get("SHARED_DIR")
 
+def is_test_func():
+    return False if os.environ.get('IS_TEST') == 'FALSE' else True
+
 def get_session():
     username = os.environ.get('TASTYTRADE_USERNAME')
     password = os.environ.get('TASTYTRADE_PASSWORD')
-    is_test = False if os.environ.get('IS_TEST') == 'FALSE' else True
+    is_test = is_test_func()
     return Session(username,password,is_test=is_test)
 
 @dataclass

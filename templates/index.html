@@ -11,13 +11,17 @@
 
   </head>
   <body>
+    {% if is_test %} 
+    <span class="badge text-bg-secondary">sandbox</span>
+    {% else %}
+    <span class="badge text-bg-success">production</span>
+    {% endif %}
     <h1>ghetto-live-gex</h1>
     <hr>
     {% if session %}
     <span class="badge text-bg-success">session login success</span>
     {% else %}
     <span class="badge text-bg-warning">session login failed</span>
-    </span>
     {% endif %}
     <script>
     function sandboxChecked(){

@@ -12,9 +12,14 @@
   </head>
   <body>
 
-    <span class="badge text-bg-secondary">note. your browser is triggering the tastytrade/dxLink API every few seconds with your credentials.</span>
+    {% if is_test %} 
+    <span class="badge text-bg-secondary">sandbox</span>
+    {% else %}
+    <span class="badge text-bg-success">production</span>
+    {% endif %}
+    <span class="badge text-bg-dark">note. your browser is triggering tastytrade&dxLink APIs every few seconds with your credentials.</span>
     <h1>ghetto-live-gex</h1>
-    <hr>
+    <hr>    
     {{ message }}
     <br>
     <br>
