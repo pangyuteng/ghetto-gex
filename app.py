@@ -11,7 +11,7 @@ import datetime
 from flask import (
     Flask, request, render_template, Response,
     redirect, url_for, jsonify, make_response,
-    send_from_directory
+    send_file
 )
 
 import asyncio
@@ -107,9 +107,9 @@ def png_file(ticker,kind):
     try:
         gex_png_file, price_png_file = get_png_file_paths(ticker)
         if kind == 'price':
-            return send_from_directory(os.path.dirname(price_png_file),os.path.basename(price_png_file))
+            return send_file(price_png_file,max_age=0)
         if kind == 'gex':
-            return send_from_directory(os.path.dirname(gex_png_file),os.path.basename(gex_png_file))
+            return send_file(gex_png_file,max_age=0)
     except:
         return jsonify({"message":traceback.format_exc()})
 
@@ -134,7 +134,9 @@ def gex_plot():
             option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
     except:
         message = traceback.format_exc()
-    return render_template('gexplot.html',message=message,
+    return render_template('gexplot.html',
+        message=message,
+        ticker=ticker,
         option_tstamp=option_tstamp,
         underlying_tstamp=underlying_tstamp,
         spot_price=spot_price)
