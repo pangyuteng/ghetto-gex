@@ -22,12 +22,18 @@
     <div>
 
     {{ ticker }}<br>
-    <div hx-get="/gex-ping", hx-trigger="on, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingResponse{{ticker}}" hx-swap="innerHTML"></div>
-    <div id="pingResponse{{ticker}}"></div>
-    <div hx-get="/gex-plot", hx-trigger="on, every 1s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+    <div hx-get="/optionchain-ping", hx-trigger="load, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
+
+    <div hx-get="/underlying-ping", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
+
+    <div hx-get="/gex-plot", hx-trigger="load, every 5s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+
     <div id="show{{ticker}}"></div>
+    <div id="pingOptionchain{{ticker}}"></div>
+    <div id="pingUnderlying{{ticker}}"></div>
 
     </div>
+    <hr>
     {% endfor %}
   </body>
 </html>

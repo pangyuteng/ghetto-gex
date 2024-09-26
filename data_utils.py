@@ -11,6 +11,7 @@ import math
 import traceback
 import datetime
 import json
+import pathlib
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -33,9 +34,6 @@ def get_session():
     password = os.environ.get('TASTYTRADE_PASSWORD')
     is_test = False if os.environ.get('IS_TEST') == 'FALSE' else True
     return Session(username,password,is_test=is_test)
-
-def time_to_datetime(tstamp):
-    return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
 @dataclass
 class UnderlyingLivePrices:
@@ -189,7 +187,10 @@ def parse_symbol(eventSymbol):
     strike = float(matched.group(4))
     return ticker,expiration,contract_type,strike
 
-def get_price_and_gex(ticker,underlying,options_dict):
+#
+# is there a popular library with gex computation?
+#
+def get_gex_df(ticker,underlying,options_dict):
     spot_price = underlying.candles[ticker].close
     spot_price = np.array(spot_price).astype(float)
     mylist = []
@@ -227,13 +228,14 @@ def get_price_and_gex(ticker,underlying,options_dict):
     df = pd.DataFrame(mylist)
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     # ????????????????????????????????
-    df['gex'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
+    df['spot_price'] = spot_price
+    df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexCandleDayVolume'] = df['gamma'].astype(float) * df['candleDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexTradeDayVolume'] = df['gamma'].astype(float) * df['tradeDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexPrevDayVolume'] = df['gamma'].astype(float) * df['prevDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
-    return spot_price, df
+    return df
 
-async def cache_gex_csv(session,ticker,csv_file,json_file,expiration_count=1):
+async def cache_underlying(session,ticker,json_file):
 
     underlying = await UnderlyingLivePrices.create(session, ticker)
     spot_price = underlying.candles[ticker].close
@@ -241,15 +243,41 @@ async def cache_gex_csv(session,ticker,csv_file,json_file,expiration_count=1):
         item = dict(underlying.candles[ticker])
         f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
 
+async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
+
+    underlying = await UnderlyingLivePrices.create(session, ticker)
+
     chain = get_option_chain(session, ticker)
+
     options_dict = {}
     for expiration in sorted(list(chain.keys())):
         options_dict[expiration] = await OptionsLivePrices.create(session, ticker, expiration)
         if len(options_dict)>expiration_count:
             break
 
-    spot_price, df = get_price_and_gex(ticker,underlying,options_dict)
-
+    df = get_gex_df(ticker,underlying,options_dict)
     df.to_csv(csv_file,index=False)
 
+def time_to_datetime(tstamp):
+    return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
+def get_data_df(folder_path):
+    json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
+    csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
+    
+    underlying_list = []
+    for json_file in json_list:
+        with open(json_file,'r') as f:
+            content = json.loads(f.read())
+            underlying_list.append(content)
+
+    underlying_df = pd.DataFrame(underlying_list)
+    underlying_df['tstamp'] = underlying_df.time.apply(time_to_datetime)
+
+    gex_df_list = []
+    for csv_file in csv_list:
+        df = pd.read_csv(csv_file)
+        df['csv_file']=csv_file
+        gex_df_list.append(df)
+    return underlying_df, gex_df_list
+    
