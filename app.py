@@ -8,13 +8,13 @@ import pathlib
 import argparse
 import datetime
 
-import base64
-
-
 from flask import (
     Flask, request, render_template, Response,
     redirect, url_for, jsonify, make_response
 )
+
+import asyncio
+from data_utils import Session, cache_gex_csv, get_session
 
 app = Flask(__name__,
     static_url_path='', 
@@ -30,66 +30,36 @@ def ping():
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    message = None
+    session = None
+    try:
+        session = get_session()        
+    except:
+        app.logger.error(traceback.format_exc())
+        message = "unable to login with credentials in .env file!"
+
+    return render_template('index.html',session=session,message=message)
 
 @app.route('/login', methods=['GET'])
 def login():
-    secrets = None
-    message = None
-    try:
-        secrets = request.args.to_dict()
-        sample_string = str(secrets)
-        sample_string_bytes = sample_string.encode("ascii")
-        base64_bytes = base64.b64encode(sample_string_bytes)
-        base64_token = base64_bytes.decode("ascii")
-    except:
-        message = traceback.format_exc()
-    #
-    # NOTE: ideally someone needs to pass me a token and this application use the token to acces dxLink.
-    #
-    resp = make_response(jsonify({"message":message}))
-    resp.headers['HX-Redirect'] = url_for("gexpage",token=base64_token)
+    tickers = request.args.to_dict()['tickers']
+    resp = make_response(jsonify({"tickers":tickers}))
+    resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
     return resp
 
-import asyncio
-from data_utils import Session, cache_gex_csv
-
 @app.route('/gex', methods=['GET'])
-def gex_main():
-    token = request.args.to_dict()['token']
-    return render_template('gex.html',token=token)
+def gex():
+    tickers = request.args.to_dict()['tickers']
+    ticker_list = [x.upper() for x in tickers.split(",") if len(x)>0]
+    return render_template('gex.html',ticker_list=ticker_list)
 
-@app.route('/gex-plot', methods=['GET'])
-def gex_plot():
-    message = None
-    try:
-        base64_token = request.args.to_dict()['token']
-        base64_bytes = base64_token.encode("ascii")
-        sample_string_bytes = base64.b64decode(base64_bytes)
-        sample_string = sample_string_bytes.decode("ascii")
-        secrets = ast.literal_eval(sample_string)
-        ticker = secrets['ticker'].upper()
-        workdir = os.path.join(shared_dir,ticker)
-    except:
-        message = traceback.format_exc()
-    return render_template('gexplot.html',message=message)
-
+# setup cron via client side, yay or nay?
 @app.route('/gex-ping', methods=['GET'])
 def gex_ping():
     secrets = None
     message = None
     try:
-        base64_token = request.args.to_dict()['token']
-
-        base64_bytes = base64_token.encode("ascii")
-        sample_string_bytes = base64.b64decode(base64_bytes)
-        sample_string = sample_string_bytes.decode("ascii")
-        secrets = ast.literal_eval(sample_string)
-        app.logger.info(str(secrets))
-        username = secrets['username']
-        password = secrets['password']
-        is_test = True if secrets['sandbox'] == 'true' else False
-        ticker = secrets['ticker'].upper()
+        ticker = request.args.to_dict()['ticker']
 
         tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         workdir = os.path.join(shared_dir,ticker)
@@ -97,14 +67,28 @@ def gex_ping():
 
         csv_file = os.path.join(workdir,f'gex-{tstamp}.csv')
         json_file = os.path.join(workdir,f'spot-{tstamp}.json')
-        session = Session(username,password,is_test=is_test)
+
+        session = get_session()
         asyncio.run(cache_gex_csv(session,ticker,csv_file,json_file,expiration_count=1))
-        #coro = cache_gex_csv(session,ticker,csv_file,json_file,expiration_count=1)
-        #future = asyncio.ensure_future(coro)
+
         message = {"json_found":os.path.exists(json_file),"csv_found":os.path.exists(csv_file),"tstamp":tstamp}
         return jsonify(message), 200
     except:
         return jsonify({"message":traceback.format_exc()}),400
+
+@app.route('/gex-plot', methods=['GET'])
+def gex_plot():
+    message = None
+    file_list = []
+    try:
+        ticker = request.args.to_dict()['ticker']
+        workdir = os.path.join(shared_dir,ticker)
+        if os.path.exists(workdir):
+            file_list = [os.path.join(workdir,x) for x in os.listdir(workdir)]
+    except:
+        message = traceback.format_exc()
+    return render_template('gexplot.html',message=message,file_list=file_list)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

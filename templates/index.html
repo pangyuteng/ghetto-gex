@@ -13,12 +13,12 @@
   <body>
     <h1>ghetto-live-gex</h1>
     <hr>
-    
-    <span class="badge text-bg-warning">
-        scecrets displayed below in plain text and communicated via http **extremely insecure**!!<br>
-        !!! DO NOT ENTER YOUR REAL TASTYTRADE CREDENTIALS, USE ONLY SANDBOX !!!<br>
-        !!! ONLY USE THIS IN LOCALHOST !!!<br>
-    </span><br>
+    {% if session %}
+    <span class="badge text-bg-success">session login success</span>
+    {% else %}
+    <span class="badge text-bg-warning">session login failed</span>
+    </span>
+    {% endif %}
     <script>
     function sandboxChecked(){
       return document.getElementById("sandbox").checked;
@@ -28,26 +28,16 @@
     <form
       type="submit" 
       hx-get="/login" 
-      hx-target="#formResponse"
-      hx-vals='js:{sandbox:sandboxChecked()}'
-      hx-swap="#formResponse">
+      hx-target="#formResponse">
 
-        <label class="form-check-label" for="username">username:</label><br>
-        <input type="text" name="username" id="username"><br>
-
-        <label class="form-check-label" for="password">password:</label><br>
-        <input type="password" name="password" id="password"><br>
-
-        <label class="form-check-label" for="sandbox">sandbox:</label><br>
-        <input type="checkbox" id="sandbox" checked><br>
-
-        <label class="form-check-label" for="ticker">ticker:</label><br>
-        <input type="text" name="ticker" placeholder="SPX" id="ticker"><br>
-        <small id="tickerHelp" class="form-text text-muted">single ticker, example: SPX</small><br>
+      <label class="form-check-label" for="tickers">tickers:</label><br>
+      <input type="text" name="tickers" placeholder="SPX,SPY" id="tickers"><br>
+      <small id="tickersHelp" class="form-text text-muted">tickers seperated by comma, example: SPX,SPY</small><br>
 
       <button type="submit" class="btn btn-primary">update</button>
 
     </form>
     <div id="formResponse"></div>
+
   </body>
 </html>

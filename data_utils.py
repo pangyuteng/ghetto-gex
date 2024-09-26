@@ -26,16 +26,16 @@ from tastytrade.utils import today_in_new_york
 from tastytrade.session import Session
 from tastytrade.dxfeed import EventType
 
-
 shared_dir = os.environ.get("SHARED_DIR")
 
+def get_session():
+    username = os.environ.get('TASTYTRADE_USERNAME')
+    password = os.environ.get('TASTYTRADE_PASSWORD')
+    is_test = False if os.environ.get('IS_TEST') == 'FALSE' else True
+    return Session(username,password,is_test=is_test)
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
-
-# sample eventSymbol ".TSLA240927C105"
-PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
-
 
 @dataclass
 class UnderlyingLivePrices:
@@ -234,7 +234,7 @@ def get_price_and_gex(ticker,underlying,options_dict):
     return spot_price, df
 
 async def cache_gex_csv(session,ticker,csv_file,json_file,expiration_count=1):
-    
+
     underlying = await UnderlyingLivePrices.create(session, ticker)
     spot_price = underlying.candles[ticker].close
     with open(json_file,'w') as f:

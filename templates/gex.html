@@ -11,15 +11,24 @@
 
   </head>
   <body>
+
+    <span class="badge text-bg-secondary">note. your browser is triggering the tastytrade/dxLink API every few seconds with your credentials.</span>
     <h1>ghetto-live-gex</h1>
     <hr>
-    <div></div>
-    token {{ token }}
-    <br>
     {{ message }}
     <br>
-    <div hx-get="/gex-ping", hx-trigger="on, every 30s" hx-vals='{"token":"{{token}}"}' hx-target="#pingResponse" hx-swap="innerHTML"></div>
-    <div id="pingResponse"></div>
+    <br>
+    {% for ticker in ticker_list %}
+    <div>
+
+    {{ ticker }}<br>
+    <div hx-get="/gex-ping", hx-trigger="on, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingResponse{{ticker}}" hx-swap="innerHTML"></div>
+    <div id="pingResponse{{ticker}}"></div>
+    <div hx-get="/gex-plot", hx-trigger="on, every 1s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+    <div id="show{{ticker}}"></div>
+
+    </div>
+    {% endfor %}
   </body>
 </html>
 

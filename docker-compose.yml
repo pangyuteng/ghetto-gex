@@ -4,6 +4,7 @@ services:
             context: .
             dockerfile: Dockerfile
         image: ghetto-gex
+        env_file: .env
         environment:
             SHARED_DIR: /shared
         volumes:
