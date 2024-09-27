@@ -115,6 +115,10 @@ def png_file(ticker,kind):
     except:
         return jsonify({"message":traceback.format_exc()})
 
+@app.route('/null', methods=['GET'])
+def null():
+    return jsonify()
+
 @app.route('/gex-plot', methods=['GET'])
 def gex_plot():
     spot_price = None
@@ -125,7 +129,8 @@ def gex_plot():
         ticker = request.args.to_dict()['ticker']
         workdir = os.path.join(shared_dir,ticker)
         if os.path.exists(workdir):
-
+            pass
+        if False:
             underlying_df, gex_df_list = get_data_df(workdir)
 
             plot_gex(workdir)

@@ -9,6 +9,22 @@
     <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+      #divGex1, #divGex2 {
+          width: 33%;
+      }
+      #divCandle {
+          width: auto;
+      }
+      #wrapper{
+          display:-webkit-flex;
+          -webkit-justify-content:center;
+
+          display:flex;
+          justify-content:center;
+
+      }
+  </style>
   </head>
   <body>
 
@@ -27,12 +43,14 @@
     <div>
 
     {{ ticker }}<br>
-    <!--
-    <div hx-get="/optionchain-ping", hx-trigger="load, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
 
-    <div hx-get="/underlying-ping", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
+    <!--
+    <div hx-get="/optionchain-ping" hx-trigger="load, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
+
+    <div hx-get="/underlying-ping" hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
     -->
-    <div hx-get="/gex-plot", hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
+
+    <div hx-get="/gex-plot" hx-trigger="load" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
     <div id="pingOptionchain{{ticker}}"></div>
