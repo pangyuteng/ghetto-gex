@@ -129,22 +129,12 @@ def get_data(ticker,kind):
 def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
-        workdir = os.path.join(shared_dir,ticker)
-        if os.path.exists(workdir):
-            pass
-        if False:
-            get_data()
-        return render_template('gexplot.html',
-            message=message,
-            ticker=ticker,
-            option_tstamp=option_tstamp,
-            underlying_tstamp=underlying_tstamp,
-            spot_price=spot_price)
-
+        underlying = get_data(ticker,'underlying')
+        optionchain = get_data(ticker,'optionchain')
+        return render_template('gexplot.html',ticker=ticker,underlying=underlying,optionchain=optionchain)
     except:
         app.logger.error(traceback.format_exc())
         return jsonify({"message":traceback.format_exc()}),400
-
     
 
 if __name__ == '__main__':
