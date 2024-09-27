@@ -291,10 +291,6 @@
         var chartCandles = new ApexCharts(document.querySelector("#chartCandles"), options);
         chartCandles.render();
       
-
-        function sleep(ms) {
-           return new Promise(resolve => setTimeout(resolve, ms));
-        }
         
         async function loadData(){
 
@@ -328,7 +324,7 @@
           chartGEXOpenInterest.updateSeries(seriesGEXOpenInterest);
 
         }
-        loadData();
+        //loadData();
         
 </script>
 </body>
