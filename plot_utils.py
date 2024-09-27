@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from data_utils import get_data_df
+from data_utils import get_underlying,get_option_chain_df
 
 shared_dir = os.environ.get("SHARED_DIR")
 
@@ -22,7 +22,8 @@ def plot_gex(ticker):
 
     ticker= os.path.basename(folder_path)
 
-    underlying_df, gex_df_list = get_data_df(folder_path,limit_last=True)
+    underlying_df = get_underlying(folder_path)
+    gex_df_list = get_option_chain_df(folder_path,limit_last=True)
     spot_price = float(underlying_df.iloc[-1].close)
     underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
 

@@ -18,9 +18,9 @@ import asyncio
 from data_utils import (
     Session, get_session, is_test_func,
     cache_underlying, cache_option_chain,
-    get_data_df,
+    get_underlying, get_option_chain_df
 )
-from plot_utils import plot_gex, get_png_file_paths
+
 
 app = Flask(__name__,
     static_url_path='', 
@@ -49,23 +49,25 @@ def index():
 
 @app.route('/login', methods=['GET'])
 def login():
-    tickers = request.args.to_dict()['tickers']
-    resp = make_response(jsonify({"tickers":tickers}))
-    resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
-    return resp
-
+    try:
+        tickers = request.args.to_dict()['tickers']
+        resp = make_response(jsonify({"tickers":tickers}))
+        resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
+        return resp
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
 @app.route('/gex', methods=['GET'])
 def gex():
-    tickers = request.args.to_dict()['tickers']
-    ticker_list = [x.upper() for x in tickers.split(",") if len(x)>0]
-    is_test = is_test_func()
-    return render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
-
+    try:
+        tickers = request.args.to_dict()['tickers']
+        ticker_list = [x.upper() for x in tickers.split(",") if len(x)>0]
+        is_test = is_test_func()
+        return render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
 # setup cron via client side, yay or nay?
 @app.route('/underlying-ping', methods=['GET'])
 def underlying_ping():
-    secrets = None
-    message = None
     try:
         ticker = request.args.to_dict()['ticker']
 
@@ -85,8 +87,6 @@ def underlying_ping():
 
 @app.route('/optionchain-ping', methods=['GET'])
 def optionchain_ping():
-    secrets = None
-    message = None
     try:
         ticker = request.args.to_dict()['ticker']
 
@@ -104,49 +104,45 @@ def optionchain_ping():
     except:
         return jsonify({"message":traceback.format_exc()}),400
 
-@app.route('/png/<ticker>/<kind>')
-def png_file(ticker,kind):
+@app.route('/data/<ticker>/<kind>')
+def get_data(ticker,kind):
     try:
-        gex_png_file, price_png_file = get_png_file_paths(ticker)
-        if kind == 'price':
-            return send_file(price_png_file,max_age=1)
+        workdir = os.path.join(shared_dir,ticker)
+        if kind == 'underlying':
+            underlying_df = get_underlying(folder_path)
+            underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
+            data_dict = dict(underlying_df.iloc[-1])
+            return jsonify(data_dict)
         if kind == 'gex':
-            return send_file(gex_png_file,max_age=1)
+            gex_df_list = get_option_chain_df(folder_path,limit_last=True)
+            csv_basename = os.path.basename(gex_df_list[-1].iloc[-1].csv_file)
+            option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
+            data_dict = df.to_dict('records')
+        return jsonify(data_dict)
     except:
-        return jsonify({"message":traceback.format_exc()})
-
-@app.route('/null', methods=['GET'])
-def null():
-    return jsonify()
+        app.logger.error(traceback.format_exc())
+        return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/gex-plot', methods=['GET'])
 def gex_plot():
-    spot_price = None
-    underlying_tstamp = None
-    option_tstamp = None
-    message = None
     try:
         ticker = request.args.to_dict()['ticker']
         workdir = os.path.join(shared_dir,ticker)
         if os.path.exists(workdir):
             pass
         if False:
-            underlying_df, gex_df_list = get_data_df(workdir)
+            get_data()
+        return render_template('gexplot.html',
+            message=message,
+            ticker=ticker,
+            option_tstamp=option_tstamp,
+            underlying_tstamp=underlying_tstamp,
+            spot_price=spot_price)
 
-            plot_gex(workdir)
-
-            spot_price = float(underlying_df.iloc[-1].close)
-            underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
-            csv_basename = os.path.basename(gex_df_list[-1].iloc[-1].csv_file)
-            option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
     except:
-        message = traceback.format_exc()
-    return render_template('gexplot.html',
-        message=message,
-        ticker=ticker,
-        option_tstamp=option_tstamp,
-        underlying_tstamp=underlying_tstamp,
-        spot_price=spot_price)
+        app.logger.error(traceback.format_exc())
+        return jsonify({"message":traceback.format_exc()}),400
+
     
 
 if __name__ == '__main__':

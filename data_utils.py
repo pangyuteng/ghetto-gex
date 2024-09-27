@@ -284,10 +284,11 @@ async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
-def get_data_df(folder_path,limit_last=True):
+    underlying_df, gex_df_list = get_underlying(folder_path,limit_last=True)
+    underlying_df, gex_df_list = get_option_chain_df(folder_path,limit_last=True)
+
+def get_underlying(folder_path):
     json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
-    csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
-    
     underlying_list = []
     for json_file in json_list:
         with open(json_file,'r') as f:
@@ -296,8 +297,10 @@ def get_data_df(folder_path,limit_last=True):
 
     underlying_df = pd.DataFrame(underlying_list)
     underlying_df['tstamp'] = underlying_df.time.apply(time_to_datetime)
+    return underlying_df
 
-    
+def get_option_chain_df(folder_path,limit_last=True):
+    csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
     gex_df_list = []
     if limit_last:
         csv_list = [csv_list[-1]]
