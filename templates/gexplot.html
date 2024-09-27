@@ -16,11 +16,11 @@
     <div id="divCandle">
         <div id="chartCandles"></div>
     </div>
+    <div id="divGex1">
+      <div id="chartGEXOpenInterest"></div>
+    </div>
     <div id="divGex2">
       <div id="chartGEXCandleVolume"></div>
-    </div>
-    <div id="divGex1">
-        <div id="chartGEXOpenInterest"></div>
     </div>
 </div>
 <script>
@@ -30,6 +30,7 @@
         var call_gexCandleDayVolume = {{ call_gexCandleDayVolume | tojson }};
         var put_gexCandleDayVolume = {{ put_gexCandleDayVolume | tojson }};
         var strike_list = {{ strike_list | tojson }};
+        var spot_price = "{{ spot_price }}" ;
 
         var optionsGEXOpenInterest = {
           series: [{
