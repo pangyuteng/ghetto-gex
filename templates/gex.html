@@ -42,8 +42,6 @@
     {% for ticker in ticker_list %}
     <div>
 
-    {{ ticker }}<br>
-
     <!-- TODO: add toggle to enable sync and no sync -->
 
     <div hx-get="/optionchain-ping" hx-trigger="load, every 20s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
@@ -52,11 +50,15 @@
     <div hx-get="/gex-plot" hx-trigger="load" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
-    <div id="pingOptionchain{{ticker}}"></div>
-    <div id="pingUnderlying{{ticker}}"></div>
+
+    <hr>
+    <span class="badge text-bg-secondary">
+      <span id="pingUnderlying{{ticker}}"></span>
+      <span id="pingOptionchain{{ticker}}"></span>
+    </span>
 
     </div>
-    <hr>
+    
     {% endfor %}
   </body>
 </html>
