@@ -150,7 +150,6 @@ def gex_plot():
         optionchain = get_data(ticker,'optionchain')
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
-        price_min, price_max = min(strike_list), max(strike_list)
         put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="P"]
@@ -159,11 +158,20 @@ def gex_plot():
         call_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="C"]
         
         spot_price = float(underlying[-1]['close'])
-
+        
+        # TODO: determine range to show. past 30min
         time_list = [x['time'] for x in underlying]
         max_tstamp = max(time_list)
         min_tstamp = max_tstamp-1000*5000
         underlying = [x for x in underlying if x['time']>min_tstamp]
+
+        # NOTE: FINDING, likely raw ohlc is within each event, thus within 1 sec??
+        close_list = [float(x['close']) for x in underlying]
+        price_min = min(close_list)
+        price_max = max(close_list)
+        app.logger.info(f"price_min {price_min} price_max {price_max} {len(close_list)}==============")
+        app.logger.info([datetime.datetime.fromtimestamp(float(x) / 1e3) for x in time_list])
+        
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"
         positive_y = spot_price

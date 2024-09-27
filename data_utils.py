@@ -294,6 +294,10 @@ def get_underlying(folder_path):
 
     underlying_df = pd.DataFrame(underlying_list)
     underlying_df['tstamp'] = underlying_df.time.apply(time_to_datetime)
+    # 
+    # TODO: group by 1min and compute opeh high low close.
+    # https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.DataFrameGroupBy.ohlc.html
+    #
     return underlying_df
 
 def get_option_chain_df(folder_path,limit_last=True):
