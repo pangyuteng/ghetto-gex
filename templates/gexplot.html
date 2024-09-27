@@ -17,11 +17,9 @@
         <div id="chartCandles"></div>
     </div>
     <div id="divGex2">
-      GEX from CandleEvent DayVolume
       <div id="chartGEXCandleVolume"></div>
     </div>
     <div id="divGex1">
-      GEX from SummaryEvent OpenInterest
         <div id="chartGEXOpenInterest"></div>
     </div>
 </div>
@@ -46,12 +44,16 @@
           },
           ],
           chart: {
+          foreColor: '#fff',
           type: 'bar',
           height: 440,
           stacked: true,
           animations: {enabled: false}
         },
         colors: ['#f58d05', '#2e82e8'],
+        title: {
+          text: 'GEX from SummaryEvent OpenInterest'
+        },
         plotOptions: {
           bar: {
             borderRadius: 5,
@@ -77,10 +79,16 @@
           }
         },
         yaxis: {
-          stepSize: 1
+          stepSize: 1,
+          labels: {
+            formatter: function (val) {
+              return Math.abs(Math.round(val))
+            }
+          }
         },
         tooltip: {
           shared: false,
+          theme: 'dark',
           x: {
             formatter: function (val) {
               return val
@@ -92,13 +100,10 @@
             }
           }
         },
-        title: {
-          text: 'Mauritius population pyramid 2011'
-        },
         xaxis: {
           categories: strike_list,
           title: {
-            text: 'Percent'
+            text: 'placeholder1'
           },
           labels: {
             formatter: function (val) {
@@ -124,10 +129,14 @@
         },
         ],
           chart: {
+            foreColor: '#fff',
           type: 'bar',
           height: 440,
           stacked: true,
           animations: {enabled: false}
+        },
+        title: {
+          text: 'GEX from CandleEvent DayVolume'
         },
         colors: ['#f58d05', '#2e82e8'],
         plotOptions: {
@@ -155,10 +164,16 @@
           }
         },
         yaxis: {
-          stepSize: 1
+          stepSize: 1,
+          labels: {
+            formatter: function (val) {
+              return Math.abs(Math.round(val))
+            }
+          }
         },
         tooltip: {
           shared: false,
+          theme: 'dark',
           x: {
             formatter: function (val) {
               return val
@@ -170,13 +185,10 @@
             }
           }
         },
-        title: {
-          text: 'Mauritius population pyramid 2011'
-        },
         xaxis: {
           categories: strike_list,
           title: {
-            text: 'Percent'
+            text: 'placeholder1'
           },
           labels: {
             formatter: function (val) {
@@ -219,50 +231,34 @@
           name: 'candle',
           type: 'candlestick',
           data: [
+            {% for item in underlying %}
             {
-              x: new Date(1538778600000),
-              y: [1, 7, 1, 5]
+              x: new Date({{ item.time }}),
+              y: [{{ item.open | float }},{{ item.high | float }},{{ item.low | float }},{{ item.close | float }}]
             },
-            {
-              x: new Date(1538780400000),
-              y: [6, 9, 4, 5]
-            },
-            {
-              x: new Date(1538782200000),
-              y: [8, 8, 3, 4]
-            },
-            {
-              x: new Date(1538784000000),
-              y: [7, 9, 6, 8]
-            },
-            {
-              x: new Date(1538785800000),
-              y: [6, 7, 4, 7]
-            },
-            {
-              x: new Date(1538787600000),
-              y: [7.5, 8, 5, 7.5]
-            },
+            {% endfor %}
           ]
         }],
           chart: {
+          foreColor: '#fff',
           height: 440,
           type: 'line',
           animations: {enabled: false},
           zoom: { enabled: false}
         },
         title: {
-          text: 'CandleStick Chart',
+          text: '{{ticker}}',
           align: 'left'
         },
         yaxis: { 
-            min: 10,
-            max: 1
+            min: {{ xmax }},
+            max: {{ xmin }}
         },
         stroke: {
           width: [6,6, 2]
         },
         tooltip: {
+          theme: 'dark',
           shared: true,
           custom: [function({seriesIndex, dataPointIndex, w}) {
             return w.globals.series[seriesIndex][dataPointIndex]

@@ -114,14 +114,14 @@ PRCT_NEG,PRCT_POS = 0.96,1.04
 def get_data(ticker,kind):
     try:
         workdir = os.path.join(shared_dir,ticker)
+        underlying_df = get_underlying(workdir)
         if kind == 'underlying':
-            underlying_df = get_underlying(workdir)
             underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
-            data_json = underlying_df.iloc[-1].to_json()
+            underlying_df.replace(np.nan, None,inplace=True)
+            data_json = underlying_df.to_dict('records')
             return data_json
         elif kind == 'optionchain':
 
-            underlying_df = get_underlying(workdir)
             close = float(underlying_df.iloc[-1].close)
 
             xmin, xmax = close*PRCT_NEG,close*PRCT_POS
