@@ -275,7 +275,7 @@ async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
     options_dict = {}
     for expiration in sorted(list(chain.keys())):
         options_dict[expiration] = await OptionsLivePrices.create(session, ticker, expiration)
-        if len(options_dict)>expiration_count:
+        if len(options_dict)==expiration_count:
             break
 
     df = get_gex_df(ticker,underlying,options_dict)

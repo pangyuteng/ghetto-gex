@@ -7,6 +7,8 @@ import ast
 import pathlib
 import argparse
 import datetime
+import pandas as pd
+import numpy as np
 
 from flask import (
     Flask, request, render_template, Response,
@@ -104,6 +106,10 @@ def optionchain_ping():
     except:
         return jsonify({"message":traceback.format_exc()}),400
 
+#
+# TODO: need a python df + class for option chains funcs.
+#
+PRCT_NEG,PRCT_POS = 0.96,1.04
 @app.route('/data/<ticker>/<kind>')
 def get_data(ticker,kind):
     try:
@@ -114,10 +120,19 @@ def get_data(ticker,kind):
             data_json = underlying_df.iloc[-1].to_json()
             return data_json
         elif kind == 'optionchain':
+
+            underlying_df = get_underlying(workdir)
+            close = float(underlying_df.iloc[-1].close)
+
+            xmin, xmax = close*PRCT_NEG,close*PRCT_POS
             gex_df_list = get_option_chain_df(workdir,limit_last=True)
             csv_basename = os.path.basename(gex_df_list[-1].iloc[-1].csv_file)
             option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
-            data_json = gex_df_list[-1].to_dict('records')
+            df = gex_df_list[-1].copy()
+            df = df[(df.strike>xmin)&(df.strike<xmax)]
+            df = df.sort_values(['strike'],ascending=False)
+            df.replace(np.nan, None,inplace=True)
+            data_json = df.to_dict('records')
             return data_json
         else:
             raise NotImplementedError()
@@ -129,9 +144,34 @@ def get_data(ticker,kind):
 def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
+
         underlying = get_data(ticker,'underlying')
+        
         optionchain = get_data(ticker,'optionchain')
-        return render_template('gexplot.html',ticker=ticker,underlying=underlying,optionchain=optionchain)
+        strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
+        strike_list = [int(x) for x in strike_list]
+        xmin, xmax = min(strike_list),max(strike_list)
+        put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
+        put_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="P"]
+        put_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="P"]
+        call_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="C"]
+        call_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="C"]
+        call_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="C"]
+
+        return render_template('gexplot.html',
+            ticker=ticker,
+            strike_list=strike_list,
+            put_gexCandleDayVolume=put_gexCandleDayVolume,
+            put_gexPrevDayVolume=put_gexPrevDayVolume,
+            put_gexSummaryOpenInterest=put_gexSummaryOpenInterest,
+            call_gexCandleDayVolume=call_gexCandleDayVolume,
+            call_gexPrevDayVolume=call_gexPrevDayVolume,
+            call_gexSummaryOpenInterest=call_gexSummaryOpenInterest,
+            underlying=underlying,
+            optionchain=optionchain,
+            xmin=xmin,
+            xmax=xmax,
+        )
     except:
         app.logger.error(traceback.format_exc())
         return jsonify({"message":traceback.format_exc()}),400

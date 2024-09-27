@@ -17,26 +17,32 @@
         <div id="chartCandles"></div>
     </div>
     <div id="divGex2">
+      GEX from CandleEvent DayVolume
       <div id="chartGEXCandleVolume"></div>
     </div>
     <div id="divGex1">
+      GEX from SummaryEvent OpenInterest
         <div id="chartGEXOpenInterest"></div>
     </div>
 </div>
-{{ticker}}<br>
-{{underlying}}<br>
-{{optionchain}}<br>
 <script>
+  
+        var call_gexSummaryOpenInterest = {{ call_gexSummaryOpenInterest | tojson }};
+        var put_gexSummaryOpenInterest = {{ put_gexSummaryOpenInterest | tojson }};
+        var call_gexCandleDayVolume = {{ call_gexCandleDayVolume | tojson }};
+        var put_gexCandleDayVolume = {{ put_gexCandleDayVolume | tojson }};
+        var strike_list = {{ strike_list | tojson }};
+
         var optionsGEXOpenInterest = {
           series: [{
             name: 'Calls',
             type: 'bar',
-            data: [-1,-1,-1,-1,-2,-5,-8,-5,-3,-1]
+            data: call_gexSummaryOpenInterest
           },
           {
             name: 'Puts',
             type: 'bar',
-            data: [-1,-1,-1,-1,-2,-5,-8,-5,-3,-1]
+            data: put_gexSummaryOpenInterest
           },
           ],
           chart: {
@@ -90,7 +96,7 @@
           text: 'Mauritius population pyramid 2011'
         },
         xaxis: {
-          categories: [10,9,8,7,6,5,4,3,2,1],
+          categories: strike_list,
           title: {
             text: 'Percent'
           },
@@ -109,12 +115,12 @@
           series: [{
           name: 'Calls',
           type: 'bar',
-          data: [10,9,8,7,6,5,4,3,2,1]
+          data: call_gexCandleDayVolume
         },
         {
           name: 'Puts',
           type: 'bar',
-          data: [-1,-2,-3,-4,-5,-6,-7,-8,-9,-10]
+          data: put_gexCandleDayVolume
         },
         ],
           chart: {
@@ -168,7 +174,7 @@
           text: 'Mauritius population pyramid 2011'
         },
         xaxis: {
-          categories: [10,9,8,7,6,5,4,3,2,1],
+          categories: strike_list,
           title: {
             text: 'Percent'
           },
