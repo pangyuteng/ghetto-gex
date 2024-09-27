@@ -116,7 +116,6 @@ def get_data(ticker,kind):
         workdir = os.path.join(shared_dir,ticker)
         underlying_df = get_underlying(workdir)
         if kind == 'underlying':
-            underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
             underlying_df.replace(np.nan, None,inplace=True)
             data_json = underlying_df.to_dict('records')
             return data_json
@@ -126,12 +125,12 @@ def get_data(ticker,kind):
 
             xmin, xmax = close*PRCT_NEG,close*PRCT_POS
             gex_df_list = get_option_chain_df(workdir,limit_last=True)
-            csv_basename = os.path.basename(gex_df_list[-1].iloc[-1].csv_file)
-            option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
             df = gex_df_list[-1].copy()
             df = df[(df.strike>xmin)&(df.strike<xmax)]
             df = df.sort_values(['strike'],ascending=False)
             df.replace(np.nan, None,inplace=True)
+            last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
+            app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
             data_json = df.to_dict('records')
             return data_json
         else:
@@ -160,6 +159,15 @@ def gex_plot():
         
         spot_price = float(underlying[-1]['close'])
 
+        time_list = [x['time'] for x in underlying]
+        max_tstamp = max(time_list)
+        min_tstamp = max_tstamp-1000*100
+        underlying = [x for x in underlying if x['time']>min_tstamp]
+        time_min = f"new Date({min_tstamp})"
+        time_max = f"new Date({max_tstamp})"
+        positive_y = 5800
+        negative_y = 5700
+
         return render_template('gexplot.html',
             ticker=ticker,
             spot_price=spot_price,
@@ -172,6 +180,10 @@ def gex_plot():
             call_gexSummaryOpenInterest=call_gexSummaryOpenInterest,
             underlying=underlying,
             optionchain=optionchain,
+            positive_y=positive_y,
+            negative_y=negative_y,
+            time_min=time_min,
+            time_max=time_max,
             xmin=xmin,
             xmax=xmax,
         )
