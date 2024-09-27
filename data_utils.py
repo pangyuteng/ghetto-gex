@@ -33,15 +33,30 @@ def is_test_func():
     return False if os.environ.get('IS_TEST') == 'FALSE' else True
 
 
-def get_session(remember_token=None,remember_me=True):
+def get_session(remember_me=True):
+    
     is_test = is_test_func()
     username = os.environ.get('TASTYTRADE_USERNAME')
-    if remember_token is None:
+    
+    daystamp = datetime.datetime.now().strftime("%Y-%m-%d")
+    token_file = f'/tmp/.tastytoken-{daystamp}.json'
+    print(token_file)
+    if not os.path.exists(token_file):
         password = os.environ.get('TASTYTRADE_PASSWORD')
-        return Session(username,password,remember_me=remember_me,is_test=is_test)
+        print(username,password)
+        session = Session(username,password,remember_me=remember_me,is_test=is_test)
+        # #use of remember_token locks the account!
+        # # TODO: need to read tasty api
+        # with open(token_file,'w') as f:
+        #    f.write(json.dumps({"remember_token":session.remember_token}))
+        return session
     else:
-        return Session(username,remember_token=remember_token,is_test=is_test)
-        
+        print('loading token file...')
+        with open(token_file,'r') as f:
+            content = json.loads(f.read())
+            remember_token = content["remember_token"]
+            print("remember_token",remember_token)
+            return Session(username,remember_token=remember_token,is_test=is_test)
 
 @dataclass
 class UnderlyingLivePrices:
@@ -296,6 +311,5 @@ if __name__ == "__main__":
     os.makedirs(workdir,exist_ok=True)
     json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
     session = get_session()
-    print(session.remember_token)
     output = asyncio.run(cache_underlying(session,ticker,json_file))
     print(json_file)
