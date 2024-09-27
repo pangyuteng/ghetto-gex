@@ -10,17 +10,18 @@
       <div id="chartGEXCandleVolume"></div>
     </div>
 </div>
+<!--
 {% for item in underlying %}
 {
   x: new Date({{ item.time }}),
   y: [{{ item.open | float }},{{ item.high | float }},{{ item.low | float }},{{ item.close | float }}]
 }<br>
 {% endfor %}
-
+-->
 <script>
 
-        var xmin = {{ xmin }};
-        var xmax = {{ xmax }};
+        var price_min = {{ price_min }};
+        var price_max = {{ price_max }};
         var time_min = {{ time_min }}; 
         var time_max = {{ time_max }};
         var positive_y = {{ positive_y }};
@@ -253,8 +254,8 @@
           align: 'left'
         },
         yaxis: { 
-            min: xmin,
-            max: xmax
+            min: price_min,
+            max: price_max
         },
         stroke: {
           width: [6,6, 2]

@@ -123,10 +123,10 @@ def get_data(ticker,kind):
 
             close = float(underlying_df.iloc[-1].close)
 
-            xmin, xmax = close*PRCT_NEG,close*PRCT_POS
+            price_min, price_max = close*PRCT_NEG,close*PRCT_POS
             gex_df_list = get_option_chain_df(workdir,limit_last=True)
             df = gex_df_list[-1].copy()
-            df = df[(df.strike>xmin)&(df.strike<xmax)]
+            df = df[(df.strike>price_min)&(df.strike<price_max)]
             df = df.sort_values(['strike'],ascending=False)
             df.replace(np.nan, None,inplace=True)
             last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
@@ -149,7 +149,7 @@ def gex_plot():
         optionchain = get_data(ticker,'optionchain')
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
-        xmin, xmax = min(strike_list), max(strike_list)
+        price_min, price_max = min(strike_list), max(strike_list)
         put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="P"]
@@ -161,12 +161,12 @@ def gex_plot():
 
         time_list = [x['time'] for x in underlying]
         max_tstamp = max(time_list)
-        min_tstamp = max_tstamp-1000*100
+        min_tstamp = max_tstamp-1000*5000
         underlying = [x for x in underlying if x['time']>min_tstamp]
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"
-        positive_y = 5800
-        negative_y = 5700
+        positive_y = spot_price
+        negative_y = spot_price
 
         return render_template('gexplot.html',
             ticker=ticker,
@@ -184,8 +184,8 @@ def gex_plot():
             negative_y=negative_y,
             time_min=time_min,
             time_max=time_max,
-            xmin=xmin,
-            xmax=xmax,
+            price_min=price_min,
+            price_max=price_max,
         )
     except:
         app.logger.error(traceback.format_exc())
