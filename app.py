@@ -109,16 +109,18 @@ def get_data(ticker,kind):
     try:
         workdir = os.path.join(shared_dir,ticker)
         if kind == 'underlying':
-            underlying_df = get_underlying(folder_path)
+            underlying_df = get_underlying(workdir)
             underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
-            data_dict = dict(underlying_df.iloc[-1])
-            return jsonify(data_dict)
-        if kind == 'gex':
-            gex_df_list = get_option_chain_df(folder_path,limit_last=True)
+            data_json = underlying_df.iloc[-1].to_json()
+            return data_json
+        elif kind == 'optionchain':
+            gex_df_list = get_option_chain_df(workdir,limit_last=True)
             csv_basename = os.path.basename(gex_df_list[-1].iloc[-1].csv_file)
             option_tstamp = csv_basename.replace(".csv","").replace("option-chain-","")
-            data_dict = df.to_dict('records')
-        return jsonify(data_dict)
+            data_json = gex_df_list[-1].to_dict('records')
+            return data_json
+        else:
+            raise NotImplementedError()
     except:
         app.logger.error(traceback.format_exc())
         return jsonify({"message":traceback.format_exc()}),400

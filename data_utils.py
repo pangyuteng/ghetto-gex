@@ -284,9 +284,6 @@ async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
-    underlying_df, gex_df_list = get_underlying(folder_path,limit_last=True)
-    underlying_df, gex_df_list = get_option_chain_df(folder_path,limit_last=True)
-
 def get_underlying(folder_path):
     json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
     underlying_list = []
@@ -308,7 +305,7 @@ def get_option_chain_df(folder_path,limit_last=True):
         df = pd.read_csv(csv_file)
         df['csv_file']=csv_file
         gex_df_list.append(df)
-    return underlying_df, gex_df_list
+    return gex_df_list
     
 if __name__ == "__main__":
     ticker = sys.argv[1]
