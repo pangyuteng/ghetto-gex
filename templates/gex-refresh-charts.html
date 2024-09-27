@@ -1,0 +1,55 @@
+<script>
+
+var price_min = {{ price_min }};
+var price_max = {{ price_max }};
+var time_min = {{ time_min }}; 
+var time_max = {{ time_max }};
+var positive_y = {{ positive_y }};
+var negative_y = {{ negative_y }};
+var candle_data = [
+{% for item in underlying %}
+  {
+    x: new Date({{ item.time }}),
+    y: [{{ item.open | float }},{{ item.high | float }},{{ item.low | float }},{{ item.close | float }}]
+  },
+{% endfor %}
+];
+
+var call_gexCandleDayVolume = {{ call_gexCandleDayVolume | tojson }};
+var put_gexCandleDayVolume = {{ put_gexCandleDayVolume | tojson }};
+var call_gexSummaryOpenInterest = {{ call_gexSummaryOpenInterest | tojson }};
+var put_gexSummaryOpenInterest = {{ put_gexSummaryOpenInterest | tojson }};
+var strike_list = {{ strike_list | tojson }};
+var spot_price = "{{ spot_price }}" ;
+
+function refreshCharts(){
+
+    var seriesGEXCandleVolume = [{
+      name: 'Calls',
+      type: 'bar',
+      data: call_gexCandleDayVolume
+    },
+    {
+      name: 'Puts',
+      type: 'bar',
+      data: put_gexCandleDayVolume
+    },
+    ];
+
+    var seriesGEXOpenInterest = [{
+      name: 'Calls',
+      type: 'bar',
+      data: call_gexSummaryOpenInterest
+    },
+    {
+      name: 'Puts',
+      type: 'bar',
+      data: put_gexSummaryOpenInterest
+    },
+    ];
+
+    chartGEXCandleVolume.updateSeries(seriesGEXCandleVolume);
+    chartGEXOpenInterest.updateSeries(seriesGEXOpenInterest);
+  }
+  refreshCharts();
+</script>

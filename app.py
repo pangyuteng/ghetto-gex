@@ -143,6 +143,7 @@ def get_data(ticker,kind):
 def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
+        refreshonly = True if request.args.to_dict()['refreshonly']=='true' else False
 
         underlying = get_data(ticker,'underlying')
         
@@ -167,8 +168,15 @@ def gex_plot():
         time_max = f"new Date({max_tstamp})"
         positive_y = spot_price
         negative_y = spot_price
+        
+        app.logger.info(f"refreshonly {refreshonly}")
 
-        return render_template('gexplot.html',
+        if refreshonly:
+            html_basename =  'gex-refresh-charts.html'
+        else:
+            html_basename = 'gexplot.html'
+
+        return render_template(html_basename,
             ticker=ticker,
             spot_price=spot_price,
             strike_list=strike_list,

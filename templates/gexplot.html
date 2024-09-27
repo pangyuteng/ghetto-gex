@@ -297,40 +297,8 @@
 
         var chartCandles = new ApexCharts(document.querySelector("#chartCandles"), options);
         chartCandles.render();
-      
-        
-        async function loadData(){
-
-          var seriesGEXCandleVolume = [{
-            name: 'Calls',
-            type: 'bar',
-            data: [0,5,1,1,10,1,1,4,0,0]
-          },
-          {
-            name: 'Puts',
-            type: 'bar',
-            data: [-1,-1,-1,-1,-2,-5,-8,-5,-3,-1]
-          },
-          ];
-
-          
-          
-          var seriesGEXOpenInterest = [{
-            name: 'Calls',
-            type: 'bar',
-            data: [10,9,8,7,6,5,4,3,2,1]
-          },
-          {
-            name: 'Puts',
-            type: 'bar',
-            data: [-1,-2,-3,-4,-5,-6,-7,-8,-9,-10]
-          },
-          ];
-
-          chartGEXCandleVolume.updateSeries(seriesGEXCandleVolume);
-          chartGEXOpenInterest.updateSeries(seriesGEXOpenInterest);
-
-        }
-        //loadData();
         
 </script>
+<div id="refreshChart{{ticker}}">
+</div>
+<div hx-get="/gex-plot" hx-trigger="every 10s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
