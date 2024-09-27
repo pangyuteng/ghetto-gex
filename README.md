@@ -2,6 +2,11 @@
 # ghetto-live-gex
 
 
+https://apexcharts.com/javascript-chart-demos/mixed-charts/line-column/
+https://apexcharts.com/javascript-chart-demos/candlestick-charts/
+https://apexcharts.com/javascript-chart-demos/candlestick-charts/candlestick-with-line/
+https://apexcharts.com/javascript-chart-demos/mixed-charts/multiple-yaxis/
+
 ```
 
 MIT LICENSE

@@ -27,10 +27,11 @@
     <div>
 
     {{ ticker }}<br>
+    <!--
     <div hx-get="/optionchain-ping", hx-trigger="load, every 30s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
 
     <div hx-get="/underlying-ping", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
-
+    -->
     <div hx-get="/gex-plot", hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
