@@ -1,7 +1,7 @@
 import os
 import sys
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto-live-gex")
+MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto_live_gex")
 sys.path.append(MY_LIB_PATH)
 
 import asyncio
