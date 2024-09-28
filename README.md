@@ -18,8 +18,6 @@
 
 ### usage
 
-```
-
 + you will first need to a apply for a TastyTrade trading account, then request for API acess, and get a Sandbox credential. this gets you access to 15-min delayed quotes. I have not gotten this API thing to work with production credentials yet, i locks me out immediately, and I can trade... so for now, am using only Sandbox for fun.
 
 + git clone the repo
@@ -33,6 +31,8 @@
 ![prompt](static/prompt.png)
 
 + gex will be computed from events obtained 
+
+![prompt](static/gex.png)
 
 
 #### gex references
