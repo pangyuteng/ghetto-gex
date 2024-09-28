@@ -24,9 +24,7 @@
 
 + git clone the repo
 
-
 + add and populate `.env` file, see example `SAMPLE.env`.
-
 
 + spin it up `docker compose up -d`
 
