@@ -3,7 +3,41 @@
 ## ghetto-live-gex
 
 ```
-NOT FINANCIAL ADVICE
+
+*** DISCLAIMER ***
+
++ NOT FINANCIAL ADVICE
+
++ IF YOU NEED SUPPORT OR WANT TO USE THIS FOR TRADING, PLEASE OPT FOR A PAID SERVICE, FOR EXAMPLE: GEXBOT, SQUEEZMETRICS, UNUSUALWHALES, SPOTGAMMA, SPYGLASSEDGE
+
++ there have been no validation on the gex computation. feel free to contribute, this is as the name implies, as ghetto as it gets.
+
++ what i'm showing here is not gex, since i have not verified the data source and gex computation with other softwares/platforms.
+
++ now we get the disclaimer out of the way, do not ask for support in the issue section. i reserve all rights to not respond, maybe ping me on twitter, you should know my psuedo faceless handle `@` if you are here.
+
+```
+
+#### usage
+
+```
+
++ you will first need to a apply for a TastyTrade trading account, then request for API acess, and get a Sandbox credential. this gets you access to 15-min delayed quotes. I have not gotten this API thing to work with production credentials yet, i locks me out immediately, and I can trade... so for now, am using only Sandbox for fun.
+
++ git clone the repo
+
+
++ add and populate `.env` file, see example `SAMPLE.env`.
+
+
++ spin it up `docker compose up -d`
+
++ in browser head to `http://localhost`, enter ticker `SPX` and click `update`
+
+![prompt](static/prompt.png)
+
++ gex will be computed from events obtained 
+
 ```
 
 #### gex references
