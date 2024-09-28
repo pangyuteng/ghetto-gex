@@ -58,6 +58,12 @@ def get_session(remember_me=True):
             print("remember_token",remember_token)
             return Session(username,remember_token=remember_token,is_test=is_test)
 
+#
+# below are copy pastas authored by Graeme22
+# amazing stuff!!!
+# https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
+# commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
+#
 @dataclass
 class UnderlyingLivePrices:
     quotes: dict[str, Quote]
