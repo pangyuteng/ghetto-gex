@@ -257,10 +257,14 @@ def get_gex_df(ticker,underlying,options_dict):
     df = pd.DataFrame(mylist)
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     #
-    # TODO: once you gather some data
-    # **this is where you can get juicy**
-    # unleash your inner-data-scientist-self.
+    # TODO:
+    # + [ ] unit is not right check below perfiliev blog
+    #       https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+    #       https://github.com/Matteo-Ferrara/gex-tracker/blob/068584c849a7cd683319250fe81c3a3847716950/main.py#L79
+    #
+    # + [ ] add unit,label to charts
     # 
+
     df['spot_price'] = spot_price
     df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexCandleDayVolume'] = df['gamma'].astype(float) * df['candleDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
@@ -290,6 +294,11 @@ async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
 
     df = get_gex_df(ticker,underlying,options_dict)
     df.to_csv(csv_file,index=False)
+#
+# TODO: once you gather some data
+# **this is where shit gets juicy**
+# unleash your inner-data-scientist-self.
+# 
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)

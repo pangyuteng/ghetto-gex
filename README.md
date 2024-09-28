@@ -2,6 +2,13 @@
 
 ## ghetto-live-gex
 
+```
+
+this is an attempt to obtain/compute/view intraday gamma exposure (GEX)* using TastyTrade and dxLINK APIs
+
+* SqueezeMetrics Research, "Gamma Exposure (GEX)" Dec. 2017. [Online] https://squeezemetrics.com/monitor/download/pdf/white_paper.pdf
+
+```
 
 # *** DISCLAIMER ***
 
@@ -48,7 +55,7 @@ docker compose up -d
 
 + naive GEX https://www.youtube.com/watch?v=2XR_Y11hCBA
 
-+ https://github.com/search?q=gex%20gamma%20exposure%20&type=repositories
++ s
 
 #### technical references
 

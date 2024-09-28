@@ -3,7 +3,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        image: ghetto-live-gex
+        image: ghetto-gex-live
         env_file: .env
         environment:
             SHARED_DIR: /shared

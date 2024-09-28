@@ -1,12 +1,11 @@
 import os
 import sys
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto_live_gex")
+MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto-gex-live")
 sys.path.append(MY_LIB_PATH)
 
 import asyncio
-import data_utils.get_session
-import data_utils.UnderlyingLivePrices
+from data_utils import get_session, UnderlyingLivePrices
 from flask import Flask, request,jsonify
 
 app = Flask(__name__,
