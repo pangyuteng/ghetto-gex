@@ -33,9 +33,9 @@
     {% else %}
     <span class="badge text-bg-success">production</span>
     {% endif %}
-    <span class="badge text-bg-dark"> note. your browser is triggering tastytrade&dxLink APIs every few seconds with your credentials. todo: not using token for auth</span>
+    <span class="badge text-bg-dark"> browser is triggering tastytrade&dxLink APIs every few seconds with tasty credentials. TODO: use token for auth</span>
     <h1>ghetto-live-gex</h1>
-    <hr>    
+    <hr>
     {{ message }}
     <br>
     <br>
@@ -43,10 +43,10 @@
     <div>
 
     <!-- TODO: add toggle to enable sync and no sync -->
-
+    <!--
     <div hx-get="/optionchain-ping" hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingOptionchain{{ticker}}" hx-swap="innerHTML"></div>
     <div hx-get="/underlying-ping" hx-trigger="load, every 10s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#pingUnderlying{{ticker}}" hx-swap="innerHTML"></div>
-
+    -->
     <div hx-get="/gex-plot" hx-trigger="load" hx-vals='{"ticker":"{{ticker}}","refreshonly":false}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
     <div id="show{{ticker}}"></div>
