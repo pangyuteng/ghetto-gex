@@ -168,15 +168,18 @@ def gex_plot():
         underlying = [x for x in underlying if x['time']>min_tstamp]
 
         close_list = [float(x['close']) for x in underlying]
-        price_min = min(close_list)
-        price_max = max(close_list)
+        price_min = min(close_list)-50
+        price_max = max(close_list)+50
 
         
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"
-        positive_y = spot_price
-        negative_y = spot_price
-        
+
+        sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
+        positive_y = float(sorted_optionchain[-1]['strike'])
+        negative_y = float(sorted_optionchain[0]['strike'])
+
+        app.logger.info(f"axhlines {positive_y} {negative_y}")
         app.logger.info(f"refreshonly {refreshonly}")
 
         if refreshonly:
