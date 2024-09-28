@@ -253,7 +253,7 @@ def get_gex_df(ticker,underlying,options_dict):
     #
     # NOTE: once you gather some data
     # this is where you can get juicy
-    # unleash your inner data scientist self.
+    # unleash your inner-data-scientist-self.
     # 
     df['spot_price'] = spot_price
     df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
