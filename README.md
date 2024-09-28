@@ -2,21 +2,19 @@
 
 ## ghetto-live-gex
 
-```
 
-*** DISCLAIMER ***
+# *** DISCLAIMER ***
 
-+ NOT FINANCIAL ADVICE
+### NOT FINANCIAL ADVICE
 
-+ IF YOU NEED SUPPORT OR WANT TO USE THIS FOR TRADING, PLEASE OPT FOR A PAID SERVICE, FOR EXAMPLE: GEXBOT, SQUEEZMETRICS, UNUSUALWHALES, SPOTGAMMA, SPYGLASSEDGE
+### + IF YOU NEED SUPPORT OR WANT TO USE THIS FOR TRADING, PLEASE OPT FOR A PAID SERVICE, FOR EXAMPLE: GEXBOT, SQUEEZMETRICS, UNUSUALWHALES, SPOTGAMMA, SPYGLASSEDGE
 
-+ there have been no validation on the gex computation. feel free to contribute, this is as the name implies, as ghetto as it gets.
+### + there have been no validation on the gex computation. feel free to contribute, this is as the name implies, as ghetto as it gets.
 
-+ what i'm showing here is not gex, since i have not verified the data source and gex computation with other softwares/platforms.
+### + what i'm showing here is not gex, since i have not verified the data source and gex computation with other softwares/platforms.
 
-+ now we get the disclaimer out of the way, do not ask for support in the issue section. i reserve all rights to not respond, maybe ping me on twitter, you should know my psuedo faceless handle `@` if you are here.
+### + now we get the disclaimer out of the way, do not ask for support in the issue section. i reserve all rights to not respond, maybe ping me on twitter, you should know my psuedo faceless handle `@` if you are here.
 
-```
 
 #### usage
 
