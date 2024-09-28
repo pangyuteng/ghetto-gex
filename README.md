@@ -34,7 +34,6 @@
 
 + gex will be computed from events obtained 
 
-```
 
 #### gex references
 
