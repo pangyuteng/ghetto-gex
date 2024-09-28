@@ -138,7 +138,7 @@ async def asyncmain(ticker,session):
             print("Current candles:", live_prices.candles)
             print("Current summaries:", live_prices.summaries)
             print("Current trades:", live_prices.trades)
-            await asyncio.sleep(10)
+            await asyncio.sleep(1)
     except KeyboardInterrupt:
         print("Stopping live price streaming...")
 
