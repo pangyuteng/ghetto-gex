@@ -251,8 +251,8 @@ def get_gex_df(ticker,underlying,options_dict):
     df = pd.DataFrame(mylist)
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     #
-    # NOTE: once you gather some data
-    # this is where you can get juicy
+    # TODO: once you gather some data
+    # **this is where you can get juicy**
     # unleash your inner-data-scientist-self.
     # 
     df['spot_price'] = spot_price
@@ -315,7 +315,9 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
         df['tstamp'] = df.time.apply(time_to_datetime)
     
     return df
-
+#
+# TODO: implement scroll bar to scroll through time and plot gex
+#
 def get_option_chain_df(folder_path,lookback_tstamp=None):
     csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
     gex_df_list = []
@@ -325,7 +327,10 @@ def get_option_chain_df(folder_path,lookback_tstamp=None):
         pass
     else:
         raise NotImplementedError()
-
+    
+    # 
+    # TODO: maybe do some resampling? massage here?
+    #
     for csv_file in csv_list:
         df = pd.read_csv(csv_file)
         df['csv_file']=csv_file
