@@ -250,7 +250,11 @@ def get_gex_df(ticker,underlying,options_dict):
     
     df = pd.DataFrame(mylist)
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    # ????????????????????????????????
+    #
+    # NOTE: once you gather some data
+    # this is where you can get juicy
+    # unleash your inner data scientist self.
+    # 
     df['spot_price'] = spot_price
     df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexCandleDayVolume'] = df['gamma'].astype(float) * df['candleDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
