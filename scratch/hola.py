@@ -1,11 +1,15 @@
 import os
 import sys
+import json
+import traceback
+
+import asyncio
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto-gex-live")
 sys.path.append(MY_LIB_PATH)
-
-import asyncio
 from data_utils import get_session, UnderlyingLivePrices
+
 from flask import Flask, request,jsonify
 
 app = Flask(__name__,
@@ -28,26 +32,62 @@ class TickerSubscriptionManager:
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+# https://stackoverflow.com/questions/42009202/how-to-call-a-async-function-contained-in-a-class
+
+
+class AwaitUnderlyingLivePrices:
+    def __init__(self,session,ticker):
+        self.session = session
+        self.ticker = ticker
+    async def __aenter__(self):
+        self.underlying = await UnderlyingLivePrices.create(self.session, self.ticker)
+        return self
+    async def __aexit__(self, *args, **kwargs):
+        pass
+    async def get_quotes(self):
+        return self.underlying.quotes
+    
+
 class TickerSubscription:
     def __init__(self,ticker,session):
         self.ticker = ticker
-        self.loop = asyncio.get_event_loop()
-        self.underlying = UnderlyingLivePrices.create(session, ticker)
+        self.session = session
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.underlying = AwaitUnderlyingLivePrices(self.session,self.ticker)
 
-    def get_events(self,event_name):
-        return self.loop.run_until_complete(self.__async_get_events())
+    def get_quotes(self):
+        event_name = "quotes"
+        return self.loop.run_until_complete(self.__async_get_events(event_name))
 
-    async def __async_get_events(self):
-        async with self.wws as echo:
-            await echo.send(json.dumps({'ticks_history': 'R_50', 'end': 'latest', 'count': 1}))
-            return await echo.receive()
+    async def __async_get_events(self,event_name):
+        async with self.underlying as myobj:
+            return await myobj.get_quotes()
+
+manager = TickerSubscriptionManager()
+
+@app.route('/quotes/<ticker>', methods=['GET'])
+def get_quotes(ticker):
+    try:
+        ticker = ticker.upper()
+        myobj = manager[ticker]
+        quotes = myobj.get_quotes()
+        app.logger.info(str(quotes))
+        quotes =json.loads(json.dumps(quotes,default=str))
+        return jsonify(quotes)
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/subscribe', methods=['GET'])
 def subscribe():
     try:
         ticker = request.args.to_dict()['ticker']
         ticker = ticker.upper()
-        susbcription_manager[ticker]={}
+        ticker_sub = TickerSubscription(ticker,manager.session)
+        manager[ticker]=ticker_sub
         return jsonify({"message":ticker})
     except:
         return jsonify({"message":traceback.format_exc()}),400
@@ -68,6 +108,7 @@ docker run -it -u $(id -u):$(id -g) -p 80:80 \
 # subscribe
 
 curl localhost/subscribe?ticker=SPX
+curl localhost/quotes/SPX
 
 # 
 

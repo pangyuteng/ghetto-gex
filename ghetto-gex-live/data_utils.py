@@ -109,18 +109,22 @@ class UnderlyingLivePrices:
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
+            logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
+            logger.debug(str(e))
             self.candles[e.eventSymbol] = e
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
+            logger.debug(str(e))
             self.summaries[e.eventSymbol] = e
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
+            logger.debug(str(e))
             self.trades[e.eventSymbol] = e
 
 @dataclass
