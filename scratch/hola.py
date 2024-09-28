@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import traceback
-
+import logging
 import asyncio
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,8 +32,18 @@ class TickerSubscriptionManager:
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+# useful.
+# keywords: python async listen subscribe example
+# https://stackoverflow.com/questions/48394405/publish-subscribe-on-python-asyncio
 # https://stackoverflow.com/questions/42009202/how-to-call-a-async-function-contained-in-a-class
+#
+# keywoards: python websocket async subscribe gather get
+# https://stackoverflow.com/questions/49858021/listen-to-multiple-socket-with-websockets-and-asyncio
+# https://stackoverflow.com/questions/74815360/asynchronous-comunications-with-websockets
+# https://stackoverflow.com/questions/72698528/how-to-use-python-websockets-and-asyncio-to-send-data-periodically-and-wait-for
 
+#
+# https://github.com/tastyware/tastytrade/issues/157
 
 class AwaitUnderlyingLivePrices:
     def __init__(self,session,ticker):
@@ -65,7 +75,9 @@ class TickerSubscription:
 
     async def __async_get_events(self,event_name):
         async with self.underlying as myobj:
-            return await myobj.get_quotes()
+            while True:
+                ret_obj = await myobj.get_quotes()
+                print(ret_obj)
 
 manager = TickerSubscriptionManager()
 
@@ -93,6 +105,7 @@ def subscribe():
         return jsonify({"message":traceback.format_exc()}),400
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     app.run(debug=True,host="0.0.0.0",port=80)
 
 
