@@ -13,7 +13,7 @@
 
 ### + what i'm showing here is not gex, since i have not verified the data source and gex computation with other softwares/platforms.
 
-### + now we get the disclaimer out of the way, do not ask for support in the issue section. i reserve all rights to not respond, maybe ping me on twitter, you should know my psuedo faceless handle `@` if you are here.
+### + now we got the disclaimer out of the way, do not ask for support in the issue section. i reserve all rights to not respond, maybe ping me on twitter, you should know my psuedo faceless handle `@` if you are here.
 
 
 #### usage
