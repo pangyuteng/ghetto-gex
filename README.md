@@ -9,7 +9,7 @@
 
 ### + IF YOU NEED SUPPORT OR WANT TO USE THIS FOR TRADING, PLEASE OPT FOR A PAID SERVICE, FOR EXAMPLE: GEXBOT, SQUEEZMETRICS, UNUSUALWHALES, SPOTGAMMA, SPYGLASSEDGE
 
-### + there have been no validation on the gex computation. feel free to contribute, this is as the name implies, as ghetto as it gets.
+### + there have been no validation on the gex computation. feel free to contribute, this is as the name implies, as ghetto as it gex.
 
 ### + what i'm showing here is not gex, since i have not verified the data source and gex computation with other softwares/platforms.
 
