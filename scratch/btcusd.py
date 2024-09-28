@@ -127,7 +127,7 @@ class UnderlyingLivePrices:
             self.trades[e.eventSymbol] = e
 
 
-async def whilemain(ticker,session):
+async def asyncmain(ticker,session):
     live_prices = await UnderlyingLivePrices.create(session,ticker)
     
     # Access the quotes dictionary while it's being updated in the background
@@ -152,4 +152,4 @@ if __name__ == "__main__":
     
     ticker = sys.argv[1]
     session = get_session()
-    asyncio.run(whilemain(ticker,session))
+    asyncio.run(asyncmain(ticker,session))
