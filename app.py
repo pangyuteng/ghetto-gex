@@ -114,7 +114,7 @@ PRCT_NEG,PRCT_POS = 0.96,1.04
 def get_data(ticker,kind):
     try:
         workdir = os.path.join(shared_dir,ticker)
-        underlying_df = get_underlying(workdir)
+        underlying_df = get_underlying(workdir,resample="1Min")
         if kind == 'underlying':
             underlying_df.replace(np.nan, None,inplace=True)
             data_json = underlying_df.to_dict('records')
@@ -144,10 +144,11 @@ def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
         refreshonly = True if request.args.to_dict()['refreshonly']=='true' else False
+        lookback_tstamp = request.args.to_dict().get('tstamp',None)
 
-        underlying = get_data(ticker,'underlying')
-        
-        optionchain = get_data(ticker,'optionchain')
+        underlying = get_data(ticker,'underlying',lookback_tstamp=lookback_tstamp)
+        optionchain = get_data(ticker,'optionchain',lookback_tstamp=lookback_tstamp)
+
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
         put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
@@ -162,15 +163,14 @@ def gex_plot():
         # TODO: determine range to show. past 30min
         time_list = [x['time'] for x in underlying]
         max_tstamp = max(time_list)
-        min_tstamp = max_tstamp-1000*5000
+        LOOKBACK_SEC = 2*60*60
+        min_tstamp = max_tstamp-1000*LOOKBACK_SEC
         underlying = [x for x in underlying if x['time']>min_tstamp]
 
-        # NOTE: FINDING, likely raw ohlc is within each event, thus within 1 sec??
         close_list = [float(x['close']) for x in underlying]
         price_min = min(close_list)
         price_max = max(close_list)
-        app.logger.info(f"price_min {price_min} price_max {price_max} {len(close_list)}==============")
-        app.logger.info([datetime.datetime.fromtimestamp(float(x) / 1e3) for x in time_list])
+
         
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"

@@ -284,7 +284,7 @@ async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
-def get_underlying(folder_path):
+def get_underlying(folder_path,resample=None,lookback_tstamp=None):
     json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
     underlying_list = []
     for json_file in json_list:
@@ -292,15 +292,27 @@ def get_underlying(folder_path):
             content = json.loads(f.read())
             underlying_list.append(content)
 
-    underlying_df = pd.DataFrame(underlying_list)
-    underlying_df['tstamp'] = underlying_df.time.apply(time_to_datetime)
-    # 
-    # TODO: group by 1min and compute opeh high low close.
-    # https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.DataFrameGroupBy.ohlc.html
-    #
-    return underlying_df
+    df = pd.DataFrame(underlying_list)
+    df['tstamp'] = df.time.apply(time_to_datetime)
+    df = df.set_index('tstamp')
+    if resample is None:
+        pass
+    else:
+        df = df[['time','eventSymbol','open','high','low','close']]
+        mapper = {
+            "open":  "first",
+            "high":  "max",
+            "low":   "min",
+            "close": "last",
+            "time": "last",
+        }
+        df = df.groupby(pd.Grouper(freq=resample)).agg(mapper)
+        df = df.dropna()
+        df['tstamp'] = df.time.apply(time_to_datetime)
+    
+    return df
 
-def get_option_chain_df(folder_path,limit_last=True):
+def get_option_chain_df(folder_path,limit_last=True,lookback_tstamp=None):
     csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
     gex_df_list = []
     if limit_last:
