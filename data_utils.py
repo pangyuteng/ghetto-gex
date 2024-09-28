@@ -46,7 +46,7 @@ def get_session(remember_me=True):
         print(username,password)
         session = Session(username,password,remember_me=remember_me,is_test=is_test)
         # #use of remember_token locks the account!
-        # # TODO: need to read tasty api
+        # TODO: need to read tasty api
         # with open(token_file,'w') as f:
         #    f.write(json.dumps({"remember_token":session.remember_token}))
         return session
@@ -329,9 +329,7 @@ def get_option_chain_df(folder_path,lookback_tstamp=None):
         raise NotImplementedError()
     
     # 
-    # TODO:
-    #
-    #  + resampling / data tally here is required!
+    # TODO: resampling / data tally here is required!
     #
     #  + per https://github.com/tastyware/tastytrade/blob/master/tastytrade/dxfeed/candle.py
     # 
