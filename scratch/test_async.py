@@ -86,6 +86,9 @@ class UnderlyingLivePrices:
         # subscribe to quotes and greeks for all options on that date
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
         await streamer.subscribe(EventType.CANDLE, streamer_symbols)
+        start_date = datetime.datetime(2024,9,25,7,0,0)
+        # interval '15s', '5m', '1h', '3d',
+        await streamer.subscribe_candle(streamer_symbols, '15s', start_date)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
 
@@ -128,22 +131,22 @@ class UnderlyingLivePrices:
             logger.debug(str(e))
             self.trades[e.eventSymbol] = e
 
+def main(ticker,session):
+    output = asyncio.run(UnderlyingLivePrices.create(session,ticker))
+
 
 async def asyncmain(ticker,session):
     live_prices = await UnderlyingLivePrices.create(session,ticker)
     try:
         while True:
             # Print or process the quotes in real time
-            print("Current quotes:", live_prices.quotes)
-            print("Current candles:", live_prices.candles)
-            print("Current summaries:", live_prices.summaries)
-            print("Current trades:", live_prices.trades)
+            # print("Current quotes:", live_prices.quotes)
+            # print("Current candles:", live_prices.candles)
+            # print("Current summaries:", live_prices.summaries)
+            # print("Current trades:", live_prices.trades)
             await asyncio.sleep(1)
     except KeyboardInterrupt:
         print("Stopping live price streaming...")
-
-def main(ticker,session):
-    output = asyncio.run(UnderlyingLivePrices.create(session,ticker))
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -156,3 +159,7 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     session = get_session()
     asyncio.run(asyncmain(ticker,session))
+
+"""
+
+"""
