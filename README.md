@@ -18,13 +18,18 @@
 
 ### usage
 
-+ you will first need to a apply for a TastyTrade trading account, then request for API acess, and get a Sandbox credential. this gets you access to 15-min delayed quotes. I have not gotten this API thing to work with production credentials yet, i locks me out immediately, and I can trade... so for now, am using only Sandbox for fun.
++ you will first need to apply for a TastyTrade trading account, then request for API acess, and get a Sandbox credential. this gets you access to 15-min delayed quotes. I have not gotten this API thing to work with production credentials yet, i locks me out immediately, and I can trade... so for now, am using only Sandbox for fun.
 
 + git clone the repo
 
-+ create and populate `.env` file within the cloned folder, see example `SAMPLE.env`.
++ create and populate `ghetto-live-gex/.env` file, see example `ghetto-live-gex/SAMPLE.env`.
 
-+ spin this shit up with docker `docker compose up -d`
++ spin up service up with docker
+
+```
+cd ghetto-live-gex
+docker compose up -d
+```
 
 + in browser head to `http://localhost`, enter ticker `SPX` and click `update`
 
