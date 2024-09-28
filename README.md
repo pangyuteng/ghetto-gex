@@ -26,7 +26,7 @@
 
 + add and populate `.env` file, see example `SAMPLE.env`.
 
-+ spin it up `docker compose up -d`
++ spin this shit up with docker `docker compose up -d`
 
 + in browser head to `http://localhost`, enter ticker `SPX` and click `update`
 
