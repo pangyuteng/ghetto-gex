@@ -111,10 +111,10 @@ def optionchain_ping():
 #
 PRCT_NEG,PRCT_POS = 0.96,1.04
 @app.route('/data/<ticker>/<kind>')
-def get_data(ticker,kind):
+def get_data(ticker,kind,lookback_tstamp=None):
     try:
         workdir = os.path.join(shared_dir,ticker)
-        underlying_df = get_underlying(workdir,resample="1Min")
+        underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
         if kind == 'underlying':
             underlying_df.replace(np.nan, None,inplace=True)
             data_json = underlying_df.to_dict('records')
@@ -124,7 +124,7 @@ def get_data(ticker,kind):
             close = float(underlying_df.iloc[-1].close)
 
             price_min, price_max = close*PRCT_NEG,close*PRCT_POS
-            gex_df_list = get_option_chain_df(workdir,limit_last=True)
+            gex_df_list = get_option_chain_df(workdir,lookback_tstamp="last")
             df = gex_df_list[-1].copy()
             df = df[(df.strike>price_min)&(df.strike<price_max)]
             df = df.sort_values(['strike'],ascending=False)

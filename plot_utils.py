@@ -23,7 +23,7 @@ def plot_gex(ticker):
     ticker= os.path.basename(folder_path)
 
     underlying_df = get_underlying(folder_path)
-    gex_df_list = get_option_chain_df(folder_path,limit_last=True)
+    gex_df_list = get_option_chain_df(folder_path,lookback_tstamp="last")
     spot_price = float(underlying_df.iloc[-1].close)
     underlying_tstamp = str(underlying_df.iloc[-1].tstamp)
 

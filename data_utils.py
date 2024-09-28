@@ -312,11 +312,16 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
     
     return df
 
-def get_option_chain_df(folder_path,limit_last=True,lookback_tstamp=None):
+def get_option_chain_df(folder_path,lookback_tstamp=None):
     csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
     gex_df_list = []
-    if limit_last:
+    if lookback_tstamp == "last":
         csv_list = [csv_list[-1]]
+    elif lookback_tstamp == "all":
+        pass
+    else:
+        raise NotImplementedError()
+
     for csv_file in csv_list:
         df = pd.read_csv(csv_file)
         df['csv_file']=csv_file
