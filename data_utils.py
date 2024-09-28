@@ -329,8 +329,21 @@ def get_option_chain_df(folder_path,lookback_tstamp=None):
         raise NotImplementedError()
     
     # 
-    # TODO: maybe do some resampling? massage here?
+    # TODO:
     #
+    #  + resampling / data tally here is required!
+    #
+    #  + per https://github.com/tastyware/tastytrade/blob/master/tastytrade/dxfeed/candle.py
+    # 
+    #    candle volume is the total volume of the candle
+    #    first figure out the frequecy of the event data for quote and greeks
+    #    probably better to sum every 30sec/1min?
+    #   
+    #    this would mean you need to figure out if you can gather all the chain or just 0dte/single-expiry
+    #    and if you can afford do that every second. 
+    #     
+    #    then think about if you can do multiple tickers...
+    # 
     for csv_file in csv_list:
         df = pd.read_csv(csv_file)
         df['csv_file']=csv_file

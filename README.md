@@ -49,6 +49,8 @@
 
 + unofficial api is the better one IMO https://github.com/tastyware/tastytrade
 
+    + https://github.com/tastyware/tastytrade/tree/master/tastytrade/dxfeed
+
 + apis https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
 
 + apis https://github.com/dxFeed/dxLink/blob/7cf19a85db196a23a70f6212ca1e5922e07f25e1/dxlink-specification/asyncapi.yml#L1387
