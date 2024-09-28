@@ -75,7 +75,7 @@ class UnderlyingLivePrices:
         cls,
         session: Session,
         symbol: str = 'SPY',
-        expiration: datetime.date = today_in_new_york()
+        listen: bool = True,
         ):
 
         underlying = Equity.get_equity(session, symbol)
@@ -96,12 +96,14 @@ class UnderlyingLivePrices:
         t_listen_summaries = asyncio.create_task(self._update_summaries())
         t_listen_trades = asyncio.create_task(self._update_trades())
         
-        #await asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
-        asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
-        # wait we have quotes and greeks for each option
-        while len(self.quotes) != 1 or len(self.candles) != 1 \
-            or len(self.summaries) !=1 or len(self.trades) != 1:
-            await asyncio.sleep(0.1)
+        if listen:
+            await asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
+        else:
+            asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
+            # wait we have quotes and greeks for each option
+            while len(self.quotes) != 1 or len(self.candles) != 1 \
+                or len(self.summaries) !=1 or len(self.trades) != 1:
+                await asyncio.sleep(0.1)
 
         return self
 
@@ -129,13 +131,14 @@ class UnderlyingLivePrices:
 
 async def asyncmain(ticker,session):
     live_prices = await UnderlyingLivePrices.create(session,ticker)
-    
-    # Access the quotes dictionary while it's being updated in the background
     try:
         while True:
             # Print or process the quotes in real time
-            print("Current Quotes:", live_prices.quotes)
-            await asyncio.sleep(5)  # Wait for 5 seconds before accessing again
+            print("Current quotes:", live_prices.quotes)
+            print("Current candles:", live_prices.candles)
+            print("Current summaries:", live_prices.summaries)
+            print("Current trades:", live_prices.trades)
+            await asyncio.sleep(10)
     except KeyboardInterrupt:
         print("Stopping live price streaming...")
 
