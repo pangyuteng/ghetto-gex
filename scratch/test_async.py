@@ -85,13 +85,12 @@ class UnderlyingLivePrices:
 
         # subscribe to quotes and greeks for all options on that date
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
-        await streamer.subscribe(EventType.CANDLE, streamer_symbols)
+        await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
+        await streamer.subscribe(EventType.TRADE, streamer_symbols)
         #start_date = datetime.datetime(2024,9,25,7,0,0)
         start_time = datetime.datetime.now()
         # interval '15s', '5m', '1h', '3d',
         await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
-        await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
-        await streamer.subscribe(EventType.TRADE, streamer_symbols)
 
         self = cls({}, {}, {}, {}, streamer, underlying, streamer_symbols)
 
@@ -113,8 +112,8 @@ class UnderlyingLivePrices:
     async def shutdown(self):
         logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
-        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
-        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")

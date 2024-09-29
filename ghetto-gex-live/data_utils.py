@@ -58,6 +58,124 @@ def get_session(remember_me=True):
             print("remember_token",remember_token)
             return Session(username,remember_token=remember_token,is_test=is_test)
 
+#
+# below are copy pastas authored by Graeme22
+# amazing stuff!!!
+# https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
+# commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
+#
+CANDLE_TYPE = '15s'
+@dataclass
+class UnderlyingLivePrices:
+    quotes: dict[str, Quote]
+    candles: dict[str, Candle]
+    summaries: dict[str, Summary]
+    trades: dict[str, Trade]
+    streamer: DXLinkStreamer
+    underlying: list[Equity]
+    streamer_symbols: list[str]
+    @classmethod
+    async def create(
+        cls,
+        session: Session,
+        symbol: str = 'SPY',
+        ):
+
+        underlying = Equity.get_equity(session, symbol)
+        streamer_symbols = [underlying.streamer_symbol]
+        
+        streamer = await DXLinkStreamer.create(session)
+
+        # subscribe to quotes and greeks for all options on that date
+        await streamer.subscribe(EventType.QUOTE, streamer_symbols)
+        await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
+        await streamer.subscribe(EventType.TRADE, streamer_symbols)
+        #start_date = datetime.datetime(2024,9,25,7,0,0)
+        start_time = datetime.datetime.now()
+        # interval '15s', '5m', '1h', '3d',
+        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
+
+        self = cls({}, {}, {}, {}, streamer, underlying, streamer_symbols)
+
+        t_listen_quotes = asyncio.create_task(self._update_quotes())
+        t_listen_candles = asyncio.create_task(self._update_candles())
+        t_listen_summaries = asyncio.create_task(self._update_summaries())
+        t_listen_trades = asyncio.create_task(self._update_trades())
+        
+        asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
+
+        # wait we have quotes and greeks for each option
+        #while len(self.quotes) != 1 or len(self.candles) != 1 \
+        #    or len(self.summaries) !=1 or len(self.trades) != 1:
+        while len(self.quotes) != 1:
+            await asyncio.sleep(0.1)
+
+        return self
+
+    async def shutdown(self):
+        logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
+        await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
+        await self.streamer.close()
+        logger.debug(f"sreamer closed...{self.streamer_symbols}")
+
+    async def _update_quotes(self):
+        async for e in self.streamer.listen(EventType.QUOTE):
+            logger.debug(str(e))
+            self.quotes[e.eventSymbol] = e
+
+    async def _update_candles(self):
+        async for e in self.streamer.listen(EventType.CANDLE):
+            logger.debug(str(e))
+            self.candles[e.eventSymbol] = e
+
+    async def _update_summaries(self):
+        async for e in self.streamer.listen(EventType.SUMMARY):
+            logger.debug(str(e))
+            self.summaries[e.eventSymbol] = e
+
+    async def _update_trades(self):
+        async for e in self.streamer.listen(EventType.TRADE):
+            logger.debug(str(e))
+            self.trades[e.eventSymbol] = e
+
+def get_cancel_file(ticker):
+    return f"/tmp/cancel-{ticker}.txt"
+
+def get_running_file(ticker):
+    return f"/tmp/running-{ticker}.txt"
+
+async def background_subscribe(ticker,session):
+    running_file = get_running_file(ticker)
+    cancel_file = get_cancel_file(ticker)
+    if not os.path.exists(running_file):
+        pathlib.Path(running_file).touch()
+    live_prices = await UnderlyingLivePrices.create(session,ticker)
+    try:
+        while True:
+            # Print or process the quotes in real time
+            logger.info(f"Current quotes: {live_prices.quotes}")
+            logger.info(f"Current candles: {live_prices.candles}")
+            logger.info(f"Current summaries: {live_prices.summaries}")
+            logger.info(f"Current trades {live_prices.trades}")
+            print(dir(live_prices))
+            await asyncio.sleep(5)
+            pathlib.Path(running_file).touch()
+            if os.path.exists(cancel_file):
+                logger.info(f"canceljob receieved...")
+                os.remove(cancel_file)
+                logger.info(f"canceling!")
+                await live_prices.shutdown()
+                if os.path.exists(running_file):
+                    os.remove(running_file)
+                raise ValueError("canceljob")
+    except KeyboardInterrupt:
+        logger.error("Stopping live price streaming...")
+    finally:
+        if os.path.exists(running_file):
+            os.remove(running_file)
 
 @dataclass
 class OptionsLivePrices:
@@ -69,6 +187,7 @@ class OptionsLivePrices:
     streamer: DXLinkStreamer
     puts: list[Option]
     calls: list[Option]
+    streamer_symbols: list[str]
 
     @classmethod
     async def create(
@@ -115,6 +234,16 @@ class OptionsLivePrices:
             await asyncio.sleep(1)
             
         return self
+
+    async def shutdown(self):
+        logger.debug(f"sreamer.unsubscribe...{len(self.streamer_symbols)}")
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.CANDLE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.GREEKS, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
+        await self.streamer.close()
+        logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
