@@ -48,8 +48,8 @@ async def index():
 
     return await render_template('index.html',session=session,message=message,is_test=is_test)
 
-@app.route('/login', methods=['GET'])
-async def login():
+@app.route('/subscribe', methods=['GET'])
+async def subscribe():
     try:
         tickers = request.args.to_dict()['tickers']
         resp = await make_response(jsonify({"tickers":tickers}))

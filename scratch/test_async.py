@@ -102,8 +102,9 @@ class UnderlyingLivePrices:
         asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
 
         # wait we have quotes and greeks for each option
-        while len(self.quotes) != 1 or len(self.candles) != 1 \
-            or len(self.summaries) !=1 or len(self.trades) != 1:
+        #while len(self.quotes) != 1 or len(self.candles) != 1 \
+        #    or len(self.summaries) !=1 or len(self.trades) != 1:
+        while len(self.quotes) != 1:
             await asyncio.sleep(0.1)
 
         return self
@@ -130,14 +131,16 @@ class UnderlyingLivePrices:
             self.trades[e.eventSymbol] = e
 
 def get_cancel_file(ticker):
-    return f"cancel-{ticker}.txt"
+    return f"/tmp/cancel-{ticker}.txt"
 def get_running_file(ticker):
-    return f"runninng-{ticker}.txt"
+    return f"/tmp/runninng-{ticker}.txt"
 
-async def asyncmain(ticker):
-    session = get_session()
+async def background_subscribe(ticker):
     running_file = get_running_file(ticker)
     cancel_file = get_cancel_file(ticker)
+    if not os.path.exists(running_file):
+        pathlib.Path(running_file).touch()
+    session = get_session()
     live_prices = await UnderlyingLivePrices.create(session,ticker)
     try:
         while True:
@@ -161,13 +164,12 @@ async def asyncmain(ticker):
         if os.path.exists(running_file):
             os.remove(running_file)
 
-
 def runshit(ticker):
-    asyncio.run(asyncmain(ticker))
+    asyncio.run(background_subscribe(ticker))
 
 def loop_in_thread(loop,ticker):
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(asyncmain(ticker))
+    loop.run_until_complete(background_subscribe(ticker))
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -179,13 +181,26 @@ if __name__ == "__main__":
     
     ticker = sys.argv[1]
 
-    # runshit(ticker)
-    loop = asyncio.get_event_loop()
-    t = threading.Thread(target=loop_in_thread, args=(loop,ticker))
-    t.start()
-    print("done")
-    time.sleep(10)
-    print("done")
+    if False:
+        runshit(ticker)
+    if False:
+        loop = asyncio.get_event_loop()
+        t = threading.Thread(target=loop_in_thread, args=(loop,ticker))
+        t.start()
+        print("done")
+        time.sleep(10)
+        print("done")
+
+
 """
 
+cd ..
+
+docker run -it -u $(id -u):$(id -g) -p 80:80 \
+    --env-file .env \
+    -v ghetto-gex-live_shared:/shared \
+    -v $PWD:/opt/app \
+    -w /opt/app pangyuteng/ghetto-gex-live:latest bash
+
+    
 """

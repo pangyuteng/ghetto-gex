@@ -1,5 +1,4 @@
-quart>=0.19.6
-Flask>=3.0.3
+Quart>=0.19.6
 pandas>=2.2.3
 tastytrade>=8.3
 notebook>=7.2.2
