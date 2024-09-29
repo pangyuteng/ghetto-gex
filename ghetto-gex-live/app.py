@@ -24,7 +24,7 @@ from data_utils import (
     get_underlying, get_option_chain_df
 )
 
-
+session = get_session()
 app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
@@ -50,16 +50,44 @@ async def index():
 
     return await render_template('index.html',session=session,message=message,is_test=is_test)
 
+@app.route('/cancel-sub', methods=['GET'])
+async def cancel_sub():
+    try:
+        ticker = request.args.to_dict()['ticker']
+        ticker = ticker.upper()
+        cancel_file = get_cancel_file(ticker)
+        pathlib.Path(cancel_file).touch()
+        await asyncio.sleep(10)
+        print(f"!!!            {len(app.background_tasks)}")
+        while len(app.background_tasks)>0:
+           task = app.background_tasks.pop()
+           task.cancel()
+        print(f"!!!            {len(app.background_tasks)}")
+        return jsonify({"message":f"{ticker} canceled"})
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
+
 @app.route('/subscribe', methods=['GET'])
 async def subscribe():
     try:
         tickers = request.args.to_dict()['tickers']
-
-        resp = await make_response(jsonify({"tickers":tickers}))
-        resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
+        ticker_list = [x.upper() for x in tickers.split(",") if len(x) > 0]
+        for ticker in ticker_list:
+            running_file = get_running_file(ticker)
+            cancel_file = get_cancel_file(ticker)
+            if os.path.exists(cancel_file):
+                os.remove(cancel_file)
+            if os.path.exists(running_file):
+                return jsonify({"message":"job running alreay"})
+            app.add_background_task(background_subscribe,ticker,session)
+        resp = await make_response(jsonify({"tickers":ticker}))
+        resp.headers['HX-Redirect'] = url_for("gex",tickers=ticker)
         return resp
+
+        return jsonify({"message":ticker})
     except:
         return jsonify({"message":traceback.format_exc()}),400
+
 
 @app.route('/gex', methods=['GET'])
 async def gex():
@@ -76,14 +104,17 @@ async def gex():
 PRCT_NEG,PRCT_POS = 0.98,1.02
 def get_data(ticker,kind,lookback_tstamp=None):
     workdir = os.path.join(shared_dir,ticker)
-    underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
+    #underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
+    underlying_df = get_underlying(workdir,resample=None,lookback_tstamp=None)
     if kind == 'underlying':
         underlying_df.replace(np.nan, None,inplace=True)
         data_json = underlying_df.to_dict('records')
         return data_json
     elif kind == 'optionchain':
-
-        close = float(underlying_df.iloc[-1].close)
+        if len(underlying_df) > 0:
+            close = float(underlying_df.iloc[-1].close)
+        else:
+            close = np.nan
 
         price_min, price_max = close*PRCT_NEG,close*PRCT_POS
         gex_df_list = get_option_chain_df(workdir,lookback_tstamp="last")

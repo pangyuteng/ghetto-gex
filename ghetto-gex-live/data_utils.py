@@ -141,42 +141,6 @@ class UnderlyingLivePrices:
             logger.debug(str(e))
             self.trades[e.eventSymbol] = e
 
-def get_cancel_file(ticker):
-    return f"/tmp/cancel-{ticker}.txt"
-
-def get_running_file(ticker):
-    return f"/tmp/running-{ticker}.txt"
-
-async def background_subscribe(ticker,session):
-    running_file = get_running_file(ticker)
-    cancel_file = get_cancel_file(ticker)
-    if not os.path.exists(running_file):
-        pathlib.Path(running_file).touch()
-    live_prices = await UnderlyingLivePrices.create(session,ticker)
-    try:
-        while True:
-            # Print or process the quotes in real time
-            logger.info(f"Current quotes: {live_prices.quotes}")
-            logger.info(f"Current candles: {live_prices.candles}")
-            logger.info(f"Current summaries: {live_prices.summaries}")
-            logger.info(f"Current trades {live_prices.trades}")
-            print(dir(live_prices))
-            await asyncio.sleep(5)
-            pathlib.Path(running_file).touch()
-            if os.path.exists(cancel_file):
-                logger.info(f"canceljob receieved...")
-                os.remove(cancel_file)
-                logger.info(f"canceling!")
-                await live_prices.shutdown()
-                if os.path.exists(running_file):
-                    os.remove(running_file)
-                raise ValueError("canceljob")
-    except KeyboardInterrupt:
-        logger.error("Stopping live price streaming...")
-    finally:
-        if os.path.exists(running_file):
-            os.remove(running_file)
-
 @dataclass
 class OptionsLivePrices:
     quotes: dict[str, Quote]
@@ -213,7 +177,7 @@ class OptionsLivePrices:
         puts = [o for o in options if o.option_type == OptionType.PUT]
         calls = [o for o in options if o.option_type == OptionType.CALL]
 
-        self = cls({}, {}, {}, {}, {}, streamer, puts, calls)
+        self = cls({}, {}, {}, {}, {}, streamer, puts, calls, streamer_symbols)
 
         t_listen_greeks = asyncio.create_task(self._update_greeks())
         t_listen_quotes = asyncio.create_task(self._update_quotes())
@@ -230,7 +194,7 @@ class OptionsLivePrices:
             or len(self.candles) < data_len_limit \
             or len(self.summaries) < data_len_limit \
             or len(self.trades) < data_len_limit:
-            print(len(options),len(self.greeks),len(self.quotes),len(self.candles),len(self.summaries),len(self.trades))
+            logger.debug(len(options),len(self.greeks),len(self.quotes),len(self.candles),len(self.summaries),len(self.trades))
             await asyncio.sleep(1)
             
         return self
@@ -337,33 +301,70 @@ def get_gex_df(ticker,underlying,options_dict):
     df['gexPrevDayVolume'] = df['gamma'].astype(float) * df['prevDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     return df
 
-async def cache_underlying(session,ticker,json_file):
-
-    underlying = await UnderlyingLivePrices.create(session, ticker)
-    spot_price = underlying.candles[ticker].close
-    with open(json_file,'w') as f:
-        item = dict(underlying.candles[ticker])
-        f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
-
-async def cache_option_chain(session,ticker,csv_file,expiration_count=1):
-
-    underlying = await UnderlyingLivePrices.create(session, ticker)
-
-    chain = get_option_chain(session, ticker)
-
-    options_dict = {}
-    for expiration in sorted(list(chain.keys())):
-        options_dict[expiration] = await OptionsLivePrices.create(session, ticker, expiration)
-        if len(options_dict)==expiration_count:
-            break
-
-    df = get_gex_df(ticker,underlying,options_dict)
-    df.to_csv(csv_file,index=False)
 #
 # TODO: once you gather some data
 # **this is where shit gets juicy**
 # unleash your inner-data-scientist-self.
 # 
+
+def get_cancel_file(ticker):
+    return f"/tmp/cancel-{ticker}.txt"
+
+def get_running_file(ticker):
+    return f"/tmp/running-{ticker}.txt"
+
+async def background_subscribe(ticker,session,expiration_count=1):
+    try:
+
+        running_file = get_running_file(ticker)
+        cancel_file = get_cancel_file(ticker)
+        if not os.path.exists(running_file):
+            pathlib.Path(running_file).touch()
+        underlying = await UnderlyingLivePrices.create(session,ticker)
+        chain = get_option_chain(session, ticker)
+        options_dict = {}
+        for expiration in sorted(list(chain.keys())):
+            options_dict[expiration] = await OptionsLivePrices.create(session, ticker, expiration)
+            if len(options_dict)==expiration_count:
+                break
+        workdir = os.path.join(shared_dir,ticker)
+
+        while True:
+            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
+            csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
+
+            # Print or process the quotes in real time
+            logger.info(f"Current quotes: {underlying.quotes}")
+            logger.info(f"Current candles: {underlying.candles}")
+            logger.info(f"Current summaries: {underlying.summaries}")
+            logger.info(f"Current trades {underlying.trades}")
+            await asyncio.sleep(15)
+            pathlib.Path(running_file).touch()
+            if os.path.exists(cancel_file):
+                logger.info(f"canceljob receieved...")
+                os.remove(cancel_file)
+                logger.info(f"canceling!")
+                await underlying.shutdown()
+                for k,option_obj in options_dict.items():
+                    option_obj.shutdown()
+                if os.path.exists(running_file):
+                    os.remove(running_file)
+                raise ValueError("canceljob")
+            
+            with open(json_file,'w') as f:
+                item = dict(underlying.candles[ticker])
+                f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
+
+            df = get_gex_df(ticker,underlying,options_dict)
+            df.to_csv(csv_file,index=False)
+
+            # cache she here.
+    except KeyboardInterrupt:
+        logger.error("Stopping live price streaming...")
+    finally:
+        if os.path.exists(running_file):
+            os.remove(running_file)
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
@@ -377,8 +378,9 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
             underlying_list.append(content)
 
     df = pd.DataFrame(underlying_list)
-    df['tstamp'] = df.time.apply(time_to_datetime)
-    df = df.set_index('tstamp')
+    if len(underlying_list)>0:
+        df['tstamp'] = df.time.apply(time_to_datetime)
+        df = df.set_index('tstamp')
     if resample is None:
         pass
     else:
