@@ -141,6 +141,7 @@ class UnderlyingLivePrices:
 
 def get_cancel_file(ticker):
     return f"/tmp/cancel-{ticker}.txt"
+
 def get_running_file(ticker):
     return f"/tmp/running-{ticker}.txt"
 

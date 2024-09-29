@@ -16,9 +16,11 @@ from quart import (
 )
 
 import asyncio
+
 from data_utils import (
-    get_session, is_test_func,
-    cache_underlying, cache_option_chain,
+    get_session,is_test_func,
+    get_cancel_file, get_running_file, 
+    background_subscribe, 
     get_underlying, get_option_chain_df
 )
 
@@ -52,11 +54,13 @@ async def index():
 async def subscribe():
     try:
         tickers = request.args.to_dict()['tickers']
+
         resp = await make_response(jsonify({"tickers":tickers}))
         resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
         return resp
     except:
         return jsonify({"message":traceback.format_exc()}),400
+
 @app.route('/gex', methods=['GET'])
 async def gex():
     try:
@@ -66,46 +70,7 @@ async def gex():
         return await render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
     except:
         return jsonify({"message":traceback.format_exc()}),400
-# setup cron via client side, yay or nay?
-@app.route('/underlying-ping', methods=['GET'])
-async def underlying_ping():
-    try:
-        ticker = request.args.to_dict()['ticker']
 
-        tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        workdir = os.path.join(shared_dir,ticker)
-        os.makedirs(workdir,exist_ok=True)
-
-        json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
-
-        session = get_session()
-        await cache_underlying(session,ticker,json_file)
-
-        message = {"underlying_file_found":os.path.exists(json_file),"tstamp":tstamp}
-        return jsonify(message), 200
-    except:
-        return jsonify({"message":traceback.format_exc()}),400
-
-@app.route('/optionchain-ping', methods=['GET'])
-async def optionchain_ping():
-    try:
-        ticker = request.args.to_dict()['ticker']
-
-        tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        workdir = os.path.join(shared_dir,ticker)
-        os.makedirs(workdir,exist_ok=True)
-
-        csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
-
-        session = get_session()
-        await cache_option_chain(session,ticker,csv_file,expiration_count=1)
-
-        message = {"optionchain_file_found":os.path.exists(csv_file),"tstamp":tstamp}
-        return jsonify(message), 200
-    except:
-        return jsonify({"message":traceback.format_exc()}),400
-
-#
 # TODO: need a python df + class for option chains funcs.
 #
 PRCT_NEG,PRCT_POS = 0.98,1.02
