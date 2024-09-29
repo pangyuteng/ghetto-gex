@@ -9,11 +9,12 @@ import asyncio
 # THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 # MY_LIB_PATH = os.path.join(os.path.dirname(THIS_DIR),"ghetto-gex-live")
 # sys.path.append(MY_LIB_PATH)
-from test_async import background_subscribe, get_cancel_file,get_running_file
+from test_async import background_subscribe, get_cancel_file,get_running_file, get_session
 
 
 from quart import Quart, request,jsonify
 
+session = get_session()
 
 app = Quart = Quart(__name__,
     static_url_path='', 
@@ -55,7 +56,7 @@ async def subscribe():
              os.remove(cancel_file)
         if os.path.exists(running_file):
              return jsonify({"message":"job running alreay"})
-        app.add_background_task(background_subscribe,ticker,)
+        app.add_background_task(background_subscribe,ticker,session)
         return jsonify({"message":ticker})
     except:
         return jsonify({"message":traceback.format_exc()}),400

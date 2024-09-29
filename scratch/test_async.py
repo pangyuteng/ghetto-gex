@@ -70,7 +70,7 @@ class UnderlyingLivePrices:
     trades: dict[str, Trade]
     streamer: DXLinkStreamer
     underlying: list[Equity]
-
+    streamer_symbols: list[str]
     @classmethod
     async def create(
         cls,
@@ -86,13 +86,14 @@ class UnderlyingLivePrices:
         # subscribe to quotes and greeks for all options on that date
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
         await streamer.subscribe(EventType.CANDLE, streamer_symbols)
-        start_date = datetime.datetime(2024,9,25,7,0,0)
+        #start_date = datetime.datetime(2024,9,25,7,0,0)
+        state_time = datetime.datetime.now()
         # interval '15s', '5m', '1h', '3d',
-        await streamer.subscribe_candle(streamer_symbols, '15s', start_date)
+        await streamer.subscribe_candle(streamer_symbols, '15s', state_time)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
 
-        self = cls({}, {}, {}, {}, streamer, underlying)
+        self = cls({}, {}, {}, {}, streamer, underlying, streamer_symbols)
 
         t_listen_quotes = asyncio.create_task(self._update_quotes())
         t_listen_candles = asyncio.create_task(self._update_candles())
@@ -109,6 +110,13 @@ class UnderlyingLivePrices:
 
         return self
 
+    async def unuscribe(self):
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe_candle(self.streamer_symbols)
+        print(self.streamer,type(self.streamer))
+        print('------------------')
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
@@ -135,12 +143,11 @@ def get_cancel_file(ticker):
 def get_running_file(ticker):
     return f"/tmp/runninng-{ticker}.txt"
 
-async def background_subscribe(ticker):
+async def background_subscribe(ticker,session):
     running_file = get_running_file(ticker)
     cancel_file = get_cancel_file(ticker)
     if not os.path.exists(running_file):
         pathlib.Path(running_file).touch()
-    session = get_session()
     live_prices = await UnderlyingLivePrices.create(session,ticker)
     try:
         while True:
@@ -155,6 +162,7 @@ async def background_subscribe(ticker):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
                 logger.info(f"canceling!")
+                await live_prices.unuscribe()
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
@@ -164,12 +172,12 @@ async def background_subscribe(ticker):
         if os.path.exists(running_file):
             os.remove(running_file)
 
-def runshit(ticker):
-    asyncio.run(background_subscribe(ticker))
+def runshit(ticker,session):
+    asyncio.run(background_subscribe(ticker,session))
 
-def loop_in_thread(loop,ticker):
+def loop_in_thread(loop,ticker,session):
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(background_subscribe(ticker))
+    loop.run_until_complete(background_subscribe(ticker,session))
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -180,12 +188,12 @@ if __name__ == "__main__":
     )
     
     ticker = sys.argv[1]
-
+    session = get_session()
     if False:
-        runshit(ticker)
+        runshit(ticker,session)
     if False:
         loop = asyncio.get_event_loop()
-        t = threading.Thread(target=loop_in_thread, args=(loop,ticker))
+        t = threading.Thread(target=loop_in_thread, args=(loop,ticker,session))
         t.start()
         print("done")
         time.sleep(10)
