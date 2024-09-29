@@ -112,6 +112,7 @@ async def optionchain_ping():
 #
 # TODO: need a python df + class for option chains funcs.
 #
+PRCT_NEG,PRCT_POS = 0.98,1.02
 def get_data(ticker,kind,lookback_tstamp=None):
     workdir = os.path.join(shared_dir,ticker)
     underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
@@ -136,7 +137,6 @@ def get_data(ticker,kind,lookback_tstamp=None):
     else:
         raise NotImplementedError()
 
-PRCT_NEG,PRCT_POS = 0.96,1.04
 @app.route('/data/<ticker>/<kind>')
 async def _data(ticker,kind,lookback_tstamp=None):
     try:
@@ -185,8 +185,8 @@ async def gex_plot():
             negative_y = float(sorted_optionchain[0]['strike'])
         except:
             app.logger.warning(traceback.format_exc())
-            positive_y = price_max
-            negative_y = price_min
+            positive_y = spot_price
+            negative_y = spot_price
         app.logger.info(f"axhlines {positive_y} {negative_y}")
         app.logger.info(f"refreshonly {refreshonly}")
 
