@@ -24,14 +24,6 @@ shared_dir = os.environ.get("SHARED_DIR")
 def index():
     return jsonify("ok")
 
-class TickerSubscriptionManager:
-    def __init__(self):
-        self.session = get_session()
-    def __getitem__(self, key):
-        return getattr(self, key)
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
 # useful.
 # keywords: python async listen subscribe example
 # https://stackoverflow.com/questions/48394405/publish-subscribe-on-python-asyncio
@@ -56,7 +48,6 @@ class AwaitUnderlyingLivePrices:
         pass
     async def get_quotes(self):
         return self.underlying.quotes
-    
 
 class TickerSubscription:
     def __init__(self,ticker,session):
@@ -79,7 +70,29 @@ class TickerSubscription:
                 ret_obj = await myobj.get_quotes()
                 print(ret_obj)
 
+class TickerSubscriptionManager:
+    def __init__(self):
+        self.session = get_session()
+    def __getitem__(self, key):
+        return getattr(self, key)
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
 manager = TickerSubscriptionManager()
+
+async def asyncmain(ticker,session):
+    live_prices = await UnderlyingLivePrices.create(session,ticker)
+    try:
+        while True:
+            # Print or process the quotes in real time
+            logger.info(f"Current quotes: {live_prices.quotes}")
+            logger.info(f"Current candles: {live_prices.candles}")
+            logger.info(f"Current summaries: {live_prices.summaries}")
+            logger.info(f"Current trades {live_prices.trades}")
+            await asyncio.sleep(10)
+    except KeyboardInterrupt:
+        logger.error("Stopping live price streaming...")
+
 
 @app.route('/quotes/<ticker>', methods=['GET'])
 def get_quotes(ticker):
@@ -90,6 +103,17 @@ def get_quotes(ticker):
         app.logger.info(str(quotes))
         quotes =json.loads(json.dumps(quotes,default=str))
         return jsonify(quotes)
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
+
+@app.route('/cancel-sub', methods=['GET'])
+def cancel_sub():
+    try:
+        ticker = request.args.to_dict()['ticker']
+        ticker = ticker.upper()
+        ticker_sub = TickerSubscription(ticker,manager.session)
+        manager[ticker]=ticker_sub
+        return jsonify({"message":ticker})
     except:
         return jsonify({"message":traceback.format_exc()}),400
 

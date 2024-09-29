@@ -10,21 +10,24 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from flask import (
-    Flask, request, render_template, Response,
-    redirect, url_for, jsonify, make_response,
-    send_file
+from quart import (
+    Quart, render_template, request,
+    url_for, jsonify, make_response,
 )
+# from flask import (
+#     Flask, request,
+#     url_for, jsonify, make_response,
+# )
 
 import asyncio
 from data_utils import (
-    Session, get_session, is_test_func,
+    get_session, is_test_func,
     cache_underlying, cache_option_chain,
     get_underlying, get_option_chain_df
 )
 
 
-app = Flask(__name__,
+app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
     template_folder='templates',
@@ -33,11 +36,11 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 shared_dir = os.environ.get("SHARED_DIR")
 
 @app.route('/ping', methods=['GET'])
-def ping():
+async def ping():
     return jsonify("pong")
 
 @app.route('/', methods=['GET'])
-def index():
+async def index():
     message = None
     session = None
     try:
@@ -47,29 +50,29 @@ def index():
         app.logger.error(traceback.format_exc())
         message = "unable to login with credentials in .env file!"
 
-    return render_template('index.html',session=session,message=message,is_test=is_test)
+    return await render_template('index.html',session=session,message=message,is_test=is_test)
 
 @app.route('/login', methods=['GET'])
-def login():
+async def login():
     try:
         tickers = request.args.to_dict()['tickers']
-        resp = make_response(jsonify({"tickers":tickers}))
+        resp = await make_response(jsonify({"tickers":tickers}))
         resp.headers['HX-Redirect'] = url_for("gex",tickers=tickers)
         return resp
     except:
         return jsonify({"message":traceback.format_exc()}),400
 @app.route('/gex', methods=['GET'])
-def gex():
+async def gex():
     try:
         tickers = request.args.to_dict()['tickers']
         ticker_list = [x.upper() for x in tickers.split(",") if len(x)>0]
         is_test = is_test_func()
-        return render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
+        return await render_template('gex.html',ticker_list=ticker_list,is_test=is_test)
     except:
         return jsonify({"message":traceback.format_exc()}),400
 # setup cron via client side, yay or nay?
 @app.route('/underlying-ping', methods=['GET'])
-def underlying_ping():
+async def underlying_ping():
     try:
         ticker = request.args.to_dict()['ticker']
 
@@ -80,7 +83,7 @@ def underlying_ping():
         json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
 
         session = get_session()
-        asyncio.run(cache_underlying(session,ticker,json_file))
+        await cache_underlying(session,ticker,json_file)
 
         message = {"underlying_file_found":os.path.exists(json_file),"tstamp":tstamp}
         return jsonify(message), 200
@@ -88,7 +91,7 @@ def underlying_ping():
         return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/optionchain-ping', methods=['GET'])
-def optionchain_ping():
+async def optionchain_ping():
     try:
         ticker = request.args.to_dict()['ticker']
 
@@ -99,7 +102,7 @@ def optionchain_ping():
         csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
 
         session = get_session()
-        asyncio.run(cache_option_chain(session,ticker,csv_file,expiration_count=1))
+        await cache_option_chain(session,ticker,csv_file,expiration_count=1)
 
         message = {"optionchain_file_found":os.path.exists(csv_file),"tstamp":tstamp}
         return jsonify(message), 200
@@ -109,38 +112,41 @@ def optionchain_ping():
 #
 # TODO: need a python df + class for option chains funcs.
 #
+def get_data(ticker,kind,lookback_tstamp=None):
+    workdir = os.path.join(shared_dir,ticker)
+    underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
+    if kind == 'underlying':
+        underlying_df.replace(np.nan, None,inplace=True)
+        data_json = underlying_df.to_dict('records')
+        return data_json
+    elif kind == 'optionchain':
+
+        close = float(underlying_df.iloc[-1].close)
+
+        price_min, price_max = close*PRCT_NEG,close*PRCT_POS
+        gex_df_list = get_option_chain_df(workdir,lookback_tstamp="last")
+        df = gex_df_list[-1].copy()
+        df = df[(df.strike>price_min)&(df.strike<price_max)]
+        df = df.sort_values(['strike'],ascending=False)
+        df.replace(np.nan, None,inplace=True)
+        last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
+        app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
+        data_json = df.to_dict('records')
+        return data_json
+    else:
+        raise NotImplementedError()
+
 PRCT_NEG,PRCT_POS = 0.96,1.04
 @app.route('/data/<ticker>/<kind>')
-def get_data(ticker,kind,lookback_tstamp=None):
+async def _data(ticker,kind,lookback_tstamp=None):
     try:
-        workdir = os.path.join(shared_dir,ticker)
-        underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
-        if kind == 'underlying':
-            underlying_df.replace(np.nan, None,inplace=True)
-            data_json = underlying_df.to_dict('records')
-            return data_json
-        elif kind == 'optionchain':
-
-            close = float(underlying_df.iloc[-1].close)
-
-            price_min, price_max = close*PRCT_NEG,close*PRCT_POS
-            gex_df_list = get_option_chain_df(workdir,lookback_tstamp="last")
-            df = gex_df_list[-1].copy()
-            df = df[(df.strike>price_min)&(df.strike<price_max)]
-            df = df.sort_values(['strike'],ascending=False)
-            df.replace(np.nan, None,inplace=True)
-            last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
-            app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
-            data_json = df.to_dict('records')
-            return data_json
-        else:
-            raise NotImplementedError()
+        return get_data(ticker,kind,lookback_tstamp=lookback_tstamp)
     except:
         app.logger.error(traceback.format_exc())
         return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/gex-plot', methods=['GET'])
-def gex_plot():
+async def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
         refreshonly = True if request.args.to_dict()['refreshonly']=='true' else False
@@ -171,14 +177,16 @@ def gex_plot():
         price_min = min(close_list)-50
         price_max = max(close_list)+50
 
-        
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"
-
-        sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
-        positive_y = float(sorted_optionchain[-1]['strike'])
-        negative_y = float(sorted_optionchain[0]['strike'])
-
+        try:
+            sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
+            positive_y = float(sorted_optionchain[-1]['strike'])
+            negative_y = float(sorted_optionchain[0]['strike'])
+        except:
+            app.logger.warning(traceback.format_exc())
+            positive_y = price_max
+            negative_y = price_min
         app.logger.info(f"axhlines {positive_y} {negative_y}")
         app.logger.info(f"refreshonly {refreshonly}")
 
@@ -187,7 +195,7 @@ def gex_plot():
         else:
             html_basename = 'gexplot.html'
 
-        return render_template(html_basename,
+        return await render_template(html_basename,
             ticker=ticker,
             spot_price=spot_price,
             strike_list=strike_list,

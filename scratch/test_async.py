@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
+import threading
 import asyncio
 from dataclasses import dataclass
 from tastytrade import DXLinkStreamer
@@ -75,7 +76,6 @@ class UnderlyingLivePrices:
         cls,
         session: Session,
         symbol: str = 'SPY',
-        listen: bool = True,
         ):
 
         underlying = Equity.get_equity(session, symbol)
@@ -99,14 +99,12 @@ class UnderlyingLivePrices:
         t_listen_summaries = asyncio.create_task(self._update_summaries())
         t_listen_trades = asyncio.create_task(self._update_trades())
         
-        if listen:
-            await asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
-        else:
-            asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
-            # wait we have quotes and greeks for each option
-            while len(self.quotes) != 1 or len(self.candles) != 1 \
-                or len(self.summaries) !=1 or len(self.trades) != 1:
-                await asyncio.sleep(0.1)
+        asyncio.gather(t_listen_quotes, t_listen_candles,t_listen_summaries,t_listen_trades)
+
+        # wait we have quotes and greeks for each option
+        while len(self.quotes) != 1 or len(self.candles) != 1 \
+            or len(self.summaries) !=1 or len(self.trades) != 1:
+            await asyncio.sleep(0.1)
 
         return self
 
@@ -131,35 +129,63 @@ class UnderlyingLivePrices:
             logger.debug(str(e))
             self.trades[e.eventSymbol] = e
 
-def main(ticker,session):
-    output = asyncio.run(UnderlyingLivePrices.create(session,ticker))
+def get_cancel_file(ticker):
+    return f"cancel-{ticker}.txt"
+def get_running_file(ticker):
+    return f"runninng-{ticker}.txt"
 
-
-async def asyncmain(ticker,session):
+async def asyncmain(ticker):
+    session = get_session()
+    running_file = get_running_file(ticker)
+    cancel_file = get_cancel_file(ticker)
     live_prices = await UnderlyingLivePrices.create(session,ticker)
     try:
         while True:
             # Print or process the quotes in real time
-            # print("Current quotes:", live_prices.quotes)
-            # print("Current candles:", live_prices.candles)
-            # print("Current summaries:", live_prices.summaries)
-            # print("Current trades:", live_prices.trades)
-            await asyncio.sleep(1)
+            logger.info(f"Current quotes: {live_prices.quotes}")
+            logger.info(f"Current candles: {live_prices.candles}")
+            logger.info(f"Current summaries: {live_prices.summaries}")
+            logger.info(f"Current trades {live_prices.trades}")
+            print(dir(live_prices))
+            await asyncio.sleep(10)
+            if os.path.exists(cancel_file):
+                logger.info(f"canceljob receieved...")
+                os.remove(cancel_file)
+                logger.info(f"canceling!")
+                if os.path.exists(running_file):
+                    os.remove(running_file)
+                raise ValueError("canceljob")
     except KeyboardInterrupt:
-        print("Stopping live price streaming...")
+        logger.error("Stopping live price streaming...")
+    finally:
+        if os.path.exists(running_file):
+            os.remove(running_file)
+
+
+def runshit(ticker):
+    asyncio.run(asyncmain(ticker))
+
+def loop_in_thread(loop,ticker):
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(asyncmain(ticker))
 
 if __name__ == "__main__":
     logging.basicConfig(
         filename='mylog.txt',
-        level=logging.DEBUG,
+        level=logging.INFO,#level=logging.DEBUG,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     
     ticker = sys.argv[1]
-    session = get_session()
-    asyncio.run(asyncmain(ticker,session))
 
+    # runshit(ticker)
+    loop = asyncio.get_event_loop()
+    t = threading.Thread(target=loop_in_thread, args=(loop,ticker))
+    t.start()
+    print("done")
+    time.sleep(10)
+    print("done")
 """
 
 """
