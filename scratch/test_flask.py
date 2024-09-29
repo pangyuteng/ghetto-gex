@@ -41,6 +41,12 @@ async def cancel_sub():
         ticker = ticker.upper()
         cancel_file = get_cancel_file(ticker)
         pathlib.Path(cancel_file).touch()
+        await asyncio.sleep(10)
+        print(f"!!!            {len(app.background_tasks)}")
+        while len(app.background_tasks)>0:
+           task = app.background_tasks.pop()
+           task.cancel()
+        print(f"!!!            {len(app.background_tasks)}")
         return jsonify({"message":f"{ticker} canceled"})
     except:
         return jsonify({"message":traceback.format_exc()}),400
@@ -78,6 +84,9 @@ docker run -it -u $(id -u):$(id -g) -p 80:80 \
 # subscribe
 
 curl localhost/subscribe?ticker=SPX
+
+curl localhost/cancel-sub?ticker=SPX
+
 curl localhost/quotes/SPX
 
 # 

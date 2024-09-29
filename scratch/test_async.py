@@ -13,7 +13,6 @@ import datetime
 import json
 import pathlib
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
@@ -111,13 +110,14 @@ class UnderlyingLivePrices:
 
         return self
 
-    async def unuscribe(self):
+    async def shutdown(self):
+        logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
-        print(self.streamer,type(self.streamer))
-        print('------------------')
+        await self.streamer.close()
+        logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
@@ -158,12 +158,13 @@ async def background_subscribe(ticker,session):
             logger.info(f"Current summaries: {live_prices.summaries}")
             logger.info(f"Current trades {live_prices.trades}")
             print(dir(live_prices))
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
+            pathlib.Path(running_file).touch()
             if os.path.exists(cancel_file):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
                 logger.info(f"canceling!")
-                await live_prices.unuscribe()
+                await live_prices.shutdown()
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
