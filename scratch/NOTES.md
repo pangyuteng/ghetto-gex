@@ -18,3 +18,9 @@ https://github.com/tastyware/tastytrade/issues/157
 use Quart and we can not run async background tasks
 
 https://quart.palletsprojects.com/en/latest/how_to_guides/background_tasks.html
+
+
+
+unsure where tasty session need to live, spawn /keep alive. respawn
+
+DEBUG:tastytrade:sending keepalive message: {'type': 'KEEPALIVE', 'channel': 0}

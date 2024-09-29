@@ -62,6 +62,7 @@ def get_session(remember_me=True):
 # https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
 #
+CANDLE_TYPE = '15s'
 @dataclass
 class UnderlyingLivePrices:
     quotes: dict[str, Quote]
@@ -87,9 +88,9 @@ class UnderlyingLivePrices:
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
         await streamer.subscribe(EventType.CANDLE, streamer_symbols)
         #start_date = datetime.datetime(2024,9,25,7,0,0)
-        state_time = datetime.datetime.now()
+        start_time = datetime.datetime.now()
         # interval '15s', '5m', '1h', '3d',
-        await streamer.subscribe_candle(streamer_symbols, '15s', state_time)
+        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
 
@@ -114,7 +115,7 @@ class UnderlyingLivePrices:
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
-        await self.streamer.unsubscribe_candle(self.streamer_symbols)
+        await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         print(self.streamer,type(self.streamer))
         print('------------------')
 
@@ -141,7 +142,7 @@ class UnderlyingLivePrices:
 def get_cancel_file(ticker):
     return f"/tmp/cancel-{ticker}.txt"
 def get_running_file(ticker):
-    return f"/tmp/runninng-{ticker}.txt"
+    return f"/tmp/running-{ticker}.txt"
 
 async def background_subscribe(ticker,session):
     running_file = get_running_file(ticker)
