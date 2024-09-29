@@ -14,10 +14,6 @@ from quart import (
     Quart, render_template, request,
     url_for, jsonify, make_response,
 )
-# from flask import (
-#     Flask, request,
-#     url_for, jsonify, make_response,
-# )
 
 import asyncio
 from data_utils import (
