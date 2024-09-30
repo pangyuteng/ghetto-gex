@@ -26,7 +26,6 @@ from tastytrade import DXLinkStreamer
 from tastytrade.instruments import get_option_chain
 from tastytrade.dxfeed import Greeks, Quote, Candle, Summary, Trade
 from tastytrade.instruments import Equity, Option, OptionType
-from tastytrade.utils import today_in_new_york
 from tastytrade.session import Session
 from tastytrade.dxfeed import EventType
 from tastytrade import today_in_new_york, now_in_new_york
@@ -268,42 +267,32 @@ async def background_subscribe(ticker,session,expiration_count=1):
         cancel_file = get_cancel_file(ticker)
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
-        #TODO underlyingLiverPrices = await UnderlyingLivePrices.create(session,ticker)
-        workdir = os.path.join(shared_dir,ticker)
+        live_prices = await LivePrices.create(session,ticker)
+        workdir = os.path.join(shared_dir,'gex',ticker)
         os.makedirs(workdir,exist_ok=True)
 
         while True:
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
-            json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
-            csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
+            underlying_file = os.path.join(workdir,f'underlying-{tstamp}.csv')
+            gex_last_file = os.path.join(workdir,f'option-chain-last-{tstamp}.csv')
 
             # Print or process the quotes in real time
-            logger.info(f"Current quotes: {underlyingLiverPrices.quotes}")
-            logger.info(f"Current candles: {underlyingLiverPrices.candles}")
-            logger.info(f"Current summaries: {underlyingLiverPrices.summaries}")
-            logger.info(f"Current trades {underlyingLiverPrices.trades}")
+            logger.info(f"Current quotes: {live_prices.quotes}")
+            logger.info(f"Current candles: {live_prices.candles}")
+            logger.info(f"Current summaries: {live_prices.summaries}")
+            logger.info(f"Current trades {live_prices.trades}")
             pathlib.Path(running_file).touch()
             if os.path.exists(cancel_file):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
                 logger.info(f"canceling!")
-                await underlyingLiverPrices.shutdown()
-                for k,option_obj in options_dict.items():
-                    option_obj.shutdown()
+                await live_prices.shutdown()
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
             
-            if underlyingLiverPrices.underlying.streamer_symbol in underlyingLiverPrices.candles.keys():
-                with open(json_file,'w') as f:
-                    item = dict(underlyingLiverPrices.candles[underlyingLiverPrices.underlying.streamer_symbol])
-                    f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
-
-                df = get_gex_df(ticker,underlyingLiverPrices,options_dict)
-                df.to_csv(csv_file,index=False)
-            else:
-                logger.info("NO SYMBOLS FOUND?????")
-            await asyncio.sleep(15)
+            # TODO: write gex csv and spot price json
+            await asyncio.sleep(1)
             # cache she here.
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
@@ -323,6 +312,7 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
             underlying_list.append(content)
 
     df = pd.DataFrame(underlying_list)
+    df = df[df.time.notnull()]
     if len(underlying_list)>0:
         df['tstamp'] = df.time.apply(time_to_datetime)
         df = df.set_index('tstamp')
@@ -331,6 +321,7 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
         pass
     else:
         df = df[['time','eventSymbol','open','high','low','close']]
+        df = df.dropna()
         mapper = {
             "open":  "first",
             "high":  "max",
@@ -338,7 +329,6 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
             "close": "last",
             "time": "last",
         }
-        print(df.time.unique())
         df = df.groupby(pd.Grouper(freq=resample)).agg(mapper)
         df = df.dropna()
         df['tstamp'] = df.time.apply(time_to_datetime)
@@ -384,15 +374,26 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     ticker = sys.argv[1]
-    #session = get_session()
-    #output = asyncio.run(background_subscribe(ticker,session))
-    folder_path = '/shared/SPX'
+    if False:
+        session = get_session()
+        output = asyncio.run(background_subscribe(ticker,session))
+    
+    daystamp = now_in_new_york().strftime("%Y-%m-%d")
+
+    folder_path = f'/shared/{ticker}/{daystamp}/{ticker}'
     df = get_underlying(folder_path,resample=None,lookback_tstamp=None)
+    print(df.shape)
     print(dict(df.iloc[-1]))
     close = float(df.iloc[-1].close)
     print(close)
-    df = get_option_chain_df(folder_path,lookback_tstamp="last")
-    print(df[-1])
+    df = get_underlying(folder_path,resample="1Min",lookback_tstamp=None)
+    print(df.shape)
+    print(dict(df.iloc[-1]))
+    close = float(df.iloc[-1].close)
+    print(close)
+    
+    # df = get_option_chain_df(folder_path,lookback_tstamp="last")
+    # print(df[-1])
 """
 cd ..
 
