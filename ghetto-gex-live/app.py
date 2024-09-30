@@ -104,7 +104,6 @@ async def gex():
 PRCT_NEG,PRCT_POS = 0.98,1.02
 def get_data(ticker,kind,lookback_tstamp=None):
     workdir = os.path.join(shared_dir,ticker)
-    #underlying_df = get_underlying(workdir,resample="1Min",lookback_tstamp=None)
     underlying_df = get_underlying(workdir,resample=None,lookback_tstamp=None)
     if kind == 'underlying':
         underlying_df.replace(np.nan, None,inplace=True)
@@ -112,7 +111,10 @@ def get_data(ticker,kind,lookback_tstamp=None):
         return data_json
     elif kind == 'optionchain':
         if len(underlying_df) > 0:
-            close = float(underlying_df.iloc[-1].close)
+            try:
+                close = float(underlying_df.iloc[-1].close)
+            except:
+                close = np.nan
         else:
             close = np.nan
 
@@ -122,8 +124,8 @@ def get_data(ticker,kind,lookback_tstamp=None):
         df = df[(df.strike>price_min)&(df.strike<price_max)]
         df = df.sort_values(['strike'],ascending=False)
         df.replace(np.nan, None,inplace=True)
-        last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
-        app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
+        #last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
+        #app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
         data_json = df.to_dict('records')
         return data_json
     else:
@@ -155,9 +157,12 @@ async def gex_plot():
         call_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="C"]
         call_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="C"]
         call_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="C"]
-        
-        spot_price = float(underlying[-1]['close'])
-        
+        try:
+            spot_price = float(underlying[-1]['close'])
+        except:
+            app.logger.warning(traceback.format_exc())
+            spot_price = 0
+
         # TODO: determine range to show. past 30min
         time_list = [x['time'] for x in underlying]
         max_tstamp = max(time_list)
@@ -165,9 +170,14 @@ async def gex_plot():
         min_tstamp = max_tstamp-1000*LOOKBACK_SEC
         underlying = [x for x in underlying if x['time']>min_tstamp]
 
-        close_list = [float(x['close']) for x in underlying]
-        price_min = min(close_list)-50
-        price_max = max(close_list)+50
+        try:
+            close_list = [float(x['close']) for x in underlying if x['close'] is not None]
+            price_min = min(close_list)-50
+            price_max = max(close_list)+50
+        except:
+            app.logger.warning(traceback.format_exc())
+            price_min = 0
+            price_max = 0
 
         time_min = f"new Date({min_tstamp})"
         time_max = f"new Date({max_tstamp})"
@@ -177,8 +187,8 @@ async def gex_plot():
             negative_y = float(sorted_optionchain[0]['strike'])
         except:
             app.logger.warning(traceback.format_exc())
-            positive_y = spot_price
-            negative_y = spot_price
+            positive_y = 0
+            negative_y = 0
         app.logger.info(f"axhlines {positive_y} {negative_y}")
         app.logger.info(f"refreshonly {refreshonly}")
 
@@ -212,6 +222,11 @@ async def gex_plot():
     
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("port",type=int)
     args = parser.parse_args()

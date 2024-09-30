@@ -90,7 +90,7 @@ class UnderlyingLivePrices:
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
-        #start_date = datetime.datetime(2024,9,25,7,0,0)
+        start_time = datetime.datetime(2024,9,25,7,0,0)
         start_time = datetime.datetime.now()
         # interval '15s', '5m', '1h', '3d',
         await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
@@ -113,32 +113,29 @@ class UnderlyingLivePrices:
         return self
 
     async def shutdown(self):
-        logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
+        logger.info(f"sreamer.unsubscribe...{self.streamer_symbols}")
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.close()
-        logger.debug(f"sreamer closed...{self.streamer_symbols}")
+        logger.info(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
-            logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
-            logger.debug(str(e))
             self.candles[e.eventSymbol] = e
+            self.candles[self.underlying.streamer_symbol] = e
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
-            logger.debug(str(e))
             self.summaries[e.eventSymbol] = e
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
-            logger.debug(str(e))
             self.trades[e.eventSymbol] = e
 
 @dataclass
@@ -200,38 +197,33 @@ class OptionsLivePrices:
         return self
 
     async def shutdown(self):
-        logger.debug(f"sreamer.unsubscribe...{len(self.streamer_symbols)}")
+        logger.info(f"sreamer.unsubscribe...{len(self.streamer_symbols)}")
         await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.CANDLE, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.GREEKS, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
         await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
         await self.streamer.close()
-        logger.debug(f"sreamer closed...{self.streamer_symbols}")
+        logger.info(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
-            logger.debug('greeks',e)
             self.greeks[e.eventSymbol] = e
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
-            logger.debug('quotes',e)
             self.quotes[e.eventSymbol] = e
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
-            logger.debug('candles',e)
             self.candles[e.eventSymbol] = e
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
-            logger.debug('summaries',e)
             self.summaries[e.eventSymbol] = e
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
-            logger.info('trades',e)
             self.trades[e.eventSymbol] = e
 
 # sample eventSymbol ".TSLA240927C105"
@@ -249,7 +241,7 @@ def parse_symbol(eventSymbol):
 # is there a popular library with gex computation?
 #
 def get_gex_df(ticker,underlying,options_dict):
-    spot_price = underlying.candles[ticker].close
+    spot_price = underlying.candles[underlying.underlying.streamer_symbol].close
     spot_price = np.array(spot_price).astype(float)
     mylist = []
     for k,v in options_dict.items():
@@ -320,7 +312,7 @@ async def background_subscribe(ticker,session,expiration_count=1):
         cancel_file = get_cancel_file(ticker)
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
-        underlying = await UnderlyingLivePrices.create(session,ticker)
+        underlyingLiverPrices = await UnderlyingLivePrices.create(session,ticker)
         chain = get_option_chain(session, ticker)
         options_dict = {}
         for expiration in sorted(list(chain.keys())):
@@ -328,6 +320,7 @@ async def background_subscribe(ticker,session,expiration_count=1):
             if len(options_dict)==expiration_count:
                 break
         workdir = os.path.join(shared_dir,ticker)
+        os.makedirs(workdir,exist_ok=True)
 
         while True:
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -335,30 +328,34 @@ async def background_subscribe(ticker,session,expiration_count=1):
             csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
 
             # Print or process the quotes in real time
-            logger.info(f"Current quotes: {underlying.quotes}")
-            logger.info(f"Current candles: {underlying.candles}")
-            logger.info(f"Current summaries: {underlying.summaries}")
-            logger.info(f"Current trades {underlying.trades}")
-            await asyncio.sleep(15)
+            logger.info(f"Current quotes: {underlyingLiverPrices.quotes}")
+            logger.info(f"Current candles: {underlyingLiverPrices.candles}")
+            logger.info(f"Current summaries: {underlyingLiverPrices.summaries}")
+            logger.info(f"Current trades {underlyingLiverPrices.trades}")
+            logger.info(f"time right now {tstamp} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            logger.info(f"{underlyingLiverPrices.candles}")
             pathlib.Path(running_file).touch()
             if os.path.exists(cancel_file):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
                 logger.info(f"canceling!")
-                await underlying.shutdown()
+                await underlyingLiverPrices.shutdown()
                 for k,option_obj in options_dict.items():
                     option_obj.shutdown()
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
             
-            with open(json_file,'w') as f:
-                item = dict(underlying.candles[ticker])
-                f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
+            if underlyingLiverPrices.underlying.streamer_symbol in underlyingLiverPrices.candles.keys():
+                with open(json_file,'w') as f:
+                    item = dict(underlyingLiverPrices.candles[underlyingLiverPrices.underlying.streamer_symbol])
+                    f.write(json.dumps(item,indent=4,sort_keys=True,default=str))
 
-            df = get_gex_df(ticker,underlying,options_dict)
-            df.to_csv(csv_file,index=False)
-
+                df = get_gex_df(ticker,underlyingLiverPrices,options_dict)
+                df.to_csv(csv_file,index=False)
+            else:
+                logger.info("NO SYMBOLS FOUND?????")
+            await asyncio.sleep(15)
             # cache she here.
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
@@ -381,6 +378,7 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
     if len(underlying_list)>0:
         df['tstamp'] = df.time.apply(time_to_datetime)
         df = df.set_index('tstamp')
+        print(df.shape)
     if resample is None:
         pass
     else:
@@ -392,6 +390,7 @@ def get_underlying(folder_path,resample=None,lookback_tstamp=None):
             "close": "last",
             "time": "last",
         }
+        print(df.time.unique())
         df = df.groupby(pd.Grouper(freq=resample)).agg(mapper)
         df = df.dropna()
         df['tstamp'] = df.time.apply(time_to_datetime)
@@ -431,11 +430,33 @@ def get_option_chain_df(folder_path,lookback_tstamp=None):
     return gex_df_list
     
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,#level=logging.DEBUG,
+        format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
     ticker = sys.argv[1]
-    tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    workdir = os.path.join(shared_dir,ticker)
-    os.makedirs(workdir,exist_ok=True)
-    json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
-    session = get_session()
-    output = asyncio.run(cache_underlying(session,ticker,json_file))
-    print(json_file)
+    #session = get_session()
+    #output = asyncio.run(background_subscribe(ticker,session))
+    folder_path = '/shared/SPX'
+    df = get_underlying(folder_path,resample=None,lookback_tstamp=None)
+    print(dict(df.iloc[-1]))
+    close = float(df.iloc[-1].close)
+    print(close)
+    df = get_option_chain_df(folder_path,lookback_tstamp="last")
+    print(df[-1])
+"""
+cd ..
+
+docker run -it -u $(id -u):$(id -g) -p 80:80 \
+
+docker run -it -p 80:80 \
+    --env-file .env \
+    -v ghetto-gex-live_shared:/shared \
+    -v $PWD:/opt/app \
+    -w /opt/app pangyuteng/ghetto-gex-live:latest bash
+
+export SHARED_DIR=/shared
+python data_utils.py SPX
+
+"""
