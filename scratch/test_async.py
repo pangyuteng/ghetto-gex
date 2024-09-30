@@ -18,6 +18,7 @@ import pandas as pd
 import numpy as np
 
 import threading
+import aiofiles
 import asyncio
 from dataclasses import dataclass
 from tastytrade import DXLinkStreamer
@@ -59,18 +60,20 @@ def get_session(remember_me=True):
             return Session(username,remember_token=remember_token,is_test=is_test)
 
 
-def save_data_to_json(ticker,streamer_symbols,event_type,event):
+async def save_data_to_json(ticker,streamer_symbols,event_type,event):
+    print("here1111111111111111111111111111111111")
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
-    logger.info(f"{tstamp} @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222 saving")
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
     workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
-    os.makedirs(workdir,exists_ok=True)
+    print(f"{tstamp} {workdir}")
+    await aiofiles.os.makedirs(workdir,exists_ok=True)
+    print(f"mkdir done")
     uid = uuid.uuid4().hex
     json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
-    with open(json_file,'w') as f:
+    async with aiofiles.open(json_file,'w') as f:
         event_dict = dict(event)
-        f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
-    logger.info(f"{tstamp} !!!!!!!!!!!!!!!!!!!!!!!!!!!!111 saving")
+        await f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
+    print("here2222222222222222222222222")
 
 
 #
@@ -152,31 +155,36 @@ class LivePrices:
         async for e in self.streamer.listen(EventType.QUOTE):
             #logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
-            save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
             #logger.debug(str(e))
-            self.candles[e.eventSymbol] = e
-            save_data_to_json(self.ticker,e.eventSymbol,EventType.CANDLE,e)
+            streamer_symbols = e.eventSymbol.replace("{=15s,tho=true}","")
+            print("here000000000000000000000000000000CANDLE")
+            self.candles[streamer_symbols] = e
+            await save_data_to_json(self.ticker,streamer_symbols,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
             #logger.debug(str(e))
+            print("here000000000000000000000000000000SUMMARY")
             self.summaries[e.eventSymbol] = e
-            save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
             #logger.debug(str(e))
+            print("here000000000000000000000000000000TRADE")
             self.trades[e.eventSymbol] = e
-            save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
             #logger.debug(str(e))
+            print("here000000000000000000000000000000GREEKS")
             self.trades[e.eventSymbol] = e
-            save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
 def get_cancel_file(ticker):
     return f"/tmp/cancel-{ticker}.txt"
@@ -228,7 +236,7 @@ if __name__ == "__main__":
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-    #logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
     ticker = sys.argv[1]
     session = get_session()
     if True:
