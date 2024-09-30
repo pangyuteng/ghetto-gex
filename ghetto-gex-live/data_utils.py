@@ -5,6 +5,7 @@ logger = logging.getLogger(__file__)
 import os
 import re
 import sys
+import uuid
 import ast
 import time
 import math
@@ -26,6 +27,7 @@ from tastytrade.instruments import Equity, Option, OptionType
 from tastytrade.utils import today_in_new_york
 from tastytrade.session import Session
 from tastytrade.dxfeed import EventType
+from tastytrade import today_in_new_york, now_in_new_york
 
 shared_dir = os.environ.get("SHARED_DIR")
 
@@ -34,11 +36,11 @@ def is_test_func():
 
 
 def get_session(remember_me=True):
-    
+
     is_test = is_test_func()
     username = os.environ.get('TASTYTRADE_USERNAME')
     
-    daystamp = datetime.datetime.now().strftime("%Y-%m-%d")
+    daystamp = now_in_new_york().strftime("%Y-%m-%d")
     token_file = f'/tmp/.tastytoken-{daystamp}.json'
     print(token_file)
     if not os.path.exists(token_file):
@@ -58,6 +60,17 @@ def get_session(remember_me=True):
             print("remember_token",remember_token)
             return Session(username,remember_token=remember_token,is_test=is_test)
 
+def save_data_to_json(ticker,symbol,event_type,event):
+    tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
+    daystamp = now_in_new_york().strftime("%Y-%m-%d")
+    workdir = os.path.join(shared_dir,ticker,daystamp,symbol,event_type)
+    os.makedirs(workdir,exists_ok=True)
+    uid = uuid.uuid4().hex
+    json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
+    with open(json_file,'w') as f:
+        event_dict = dict(event)
+        f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
+
 #
 # below are copy pastas authored by Graeme22
 # amazing stuff!!!
@@ -74,14 +87,15 @@ class UnderlyingLivePrices:
     streamer: DXLinkStreamer
     underlying: list[Equity]
     streamer_symbols: list[str]
+    ticker: str
     @classmethod
     async def create(
         cls,
         session: Session,
-        symbol: str = 'SPY',
+        ticker: str = 'SPY',
         ):
 
-        underlying = Equity.get_equity(session, symbol)
+        underlying = Equity.get_equity(session, ticker)
         streamer_symbols = [underlying.streamer_symbol]
         
         streamer = await DXLinkStreamer.create(session)
@@ -90,12 +104,12 @@ class UnderlyingLivePrices:
         await streamer.subscribe(EventType.QUOTE, streamer_symbols)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
-        start_time = datetime.datetime(2024,9,25,7,0,0)
-        start_time = datetime.datetime.now()
+
+        start_time = now_in_new_york()
         # interval '15s', '5m', '1h', '3d',
         await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
 
-        self = cls({}, {}, {}, {}, streamer, underlying, streamer_symbols)
+        self = cls({}, {}, {}, {}, streamer, underlying, streamer_symbols, ticker)
 
         t_listen_quotes = asyncio.create_task(self._update_quotes())
         t_listen_candles = asyncio.create_task(self._update_candles())
@@ -124,19 +138,24 @@ class UnderlyingLivePrices:
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
             self.quotes[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
             self.candles[e.eventSymbol] = e
-            self.candles[self.underlying.streamer_symbol] = e
+            symbol = self.underlying.streamer_symbol
+            self.candles[symbol] = e
+            save_data_to_json(self.ticker,symbol,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
             self.summaries[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
             self.trades[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
 @dataclass
 class OptionsLivePrices:
@@ -149,24 +168,24 @@ class OptionsLivePrices:
     puts: list[Option]
     calls: list[Option]
     streamer_symbols: list[str]
-
+    ticker: str
     @classmethod
     async def create(
         cls,
         session: Session,
-        symbol: str = 'SPY',
+        ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york()
         ):
 
-        chain = get_option_chain(session, symbol)
+        chain = get_option_chain(session, ticker)
         options = [o for o in chain[expiration]]
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
         
         streamer = await DXLinkStreamer.create(session)
         # subscribe to quotes and greeks for all options on that date
-        await streamer.subscribe(EventType.QUOTE, [symbol] + streamer_symbols)
-        await streamer.subscribe(EventType.CANDLE, [symbol] + streamer_symbols)
+        await streamer.subscribe(EventType.QUOTE, [ticker] + streamer_symbols)
+        await streamer.subscribe(EventType.CANDLE, [ticker] + streamer_symbols)
         await streamer.subscribe(EventType.GREEKS, streamer_symbols)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
@@ -174,7 +193,7 @@ class OptionsLivePrices:
         puts = [o for o in options if o.option_type == OptionType.PUT]
         calls = [o for o in options if o.option_type == OptionType.CALL]
 
-        self = cls({}, {}, {}, {}, {}, streamer, puts, calls, streamer_symbols)
+        self = cls({}, {}, {}, {}, {}, streamer, puts, calls, streamer_symbols,ticker)
 
         t_listen_greeks = asyncio.create_task(self._update_greeks())
         t_listen_quotes = asyncio.create_task(self._update_quotes())
@@ -209,22 +228,27 @@ class OptionsLivePrices:
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
             self.greeks[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
             self.quotes[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
             self.candles[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
             self.summaries[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
             self.trades[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
 # sample eventSymbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -323,7 +347,7 @@ async def background_subscribe(ticker,session,expiration_count=1):
         os.makedirs(workdir,exist_ok=True)
 
         while True:
-            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
             json_file = os.path.join(workdir,f'underlying-{tstamp}.json')
             csv_file = os.path.join(workdir,f'option-chain-{tstamp}.csv')
 
