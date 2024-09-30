@@ -20,6 +20,7 @@ import numpy as np
 import threading
 import aiofiles
 import asyncio
+import aiofiles.os
 from dataclasses import dataclass
 from tastytrade import DXLinkStreamer
 from tastytrade.instruments import get_option_chain
@@ -66,7 +67,7 @@ async def save_data_to_json(ticker,streamer_symbols,event_type,event):
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
     workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
     print(f"{tstamp} {workdir}")
-    await aiofiles.os.makedirs(workdir,exists_ok=True)
+    await aiofiles.os.makedirs(workdir,exist_ok=True)
     print(f"mkdir done")
     uid = uuid.uuid4().hex
     json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
