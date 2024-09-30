@@ -181,6 +181,88 @@ class LivePrices:
             self.trades[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
+def get_cancel_file(ticker):
+    return f"/tmp/cancel-{ticker}.txt"
+
+def get_running_file(ticker):
+    return f"/tmp/running-{ticker}.txt"
+
+async def background_subscribe(ticker,session,expiration_count=1):
+    try:
+
+        running_file = get_running_file(ticker)
+        cancel_file = get_cancel_file(ticker)
+        if not os.path.exists(running_file):
+            pathlib.Path(running_file).touch()
+        live_prices = await LivePrices.create(session,ticker)
+        workdir = os.path.join(shared_dir,'gex',ticker)
+        os.makedirs(workdir,exist_ok=True)
+
+        while True:
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
+            underlying_file = os.path.join(workdir,f'underlying-{tstamp}.csv')
+            gex_last_file = os.path.join(workdir,f'option-chain-last-{tstamp}.csv')
+
+            # Print or process the quotes in real time
+            logger.info(f"Current quotes: {live_prices.quotes}")
+            logger.info(f"Current candles: {live_prices.candles}")
+            logger.info(f"Current summaries: {live_prices.summaries}")
+            logger.info(f"Current trades {live_prices.trades}")
+            pathlib.Path(running_file).touch()
+            if os.path.exists(cancel_file):
+                logger.info(f"canceljob receieved...")
+                os.remove(cancel_file)
+                logger.info(f"canceling!")
+                await live_prices.shutdown()
+                if os.path.exists(running_file):
+                    os.remove(running_file)
+                raise ValueError("canceljob")
+            
+            # TODO: write gex csv and spot price json
+            await asyncio.sleep(1)
+            # cache she here.
+    except KeyboardInterrupt:
+        logger.error("Stopping live price streaming...")
+    finally:
+        if os.path.exists(running_file):
+            os.remove(running_file)
+
+def time_to_datetime(tstamp):
+    return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
+
+def get_underlying_df(folder_path,resample=None,lookback_tstamp=None):
+    json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
+    underlying_list = []
+    for json_file in json_list:
+        with open(json_file,'r') as f:
+            content = json.loads(f.read())
+            underlying_list.append(content)
+
+    df = pd.DataFrame(underlying_list)
+    df = df[df.time.notnull()]
+    if len(underlying_list)>0:
+        df['tstamp'] = df.time.apply(time_to_datetime)
+        df = df.set_index('tstamp')
+        print(df.shape)
+    if resample is None:
+        pass
+    else:
+        df = df[['time','eventSymbol','open','high','low','close']]
+        df = df.dropna()
+        mapper = {
+            "open":  "first",
+            "high":  "max",
+            "low":   "min",
+            "close": "last",
+            "time": "last",
+        }
+        df = df.groupby(pd.Grouper(freq=resample)).agg(mapper)
+        df = df.dropna()
+        df['tstamp'] = df.time.apply(time_to_datetime)
+    
+    return df
+
+
 # sample eventSymbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
 
@@ -254,86 +336,6 @@ def get_gex_df(ticker,underlying,options_dict):
 # unleash your inner-data-scientist-self.
 # 
 
-def get_cancel_file(ticker):
-    return f"/tmp/cancel-{ticker}.txt"
-
-def get_running_file(ticker):
-    return f"/tmp/running-{ticker}.txt"
-
-async def background_subscribe(ticker,session,expiration_count=1):
-    try:
-
-        running_file = get_running_file(ticker)
-        cancel_file = get_cancel_file(ticker)
-        if not os.path.exists(running_file):
-            pathlib.Path(running_file).touch()
-        live_prices = await LivePrices.create(session,ticker)
-        workdir = os.path.join(shared_dir,'gex',ticker)
-        os.makedirs(workdir,exist_ok=True)
-
-        while True:
-            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
-            underlying_file = os.path.join(workdir,f'underlying-{tstamp}.csv')
-            gex_last_file = os.path.join(workdir,f'option-chain-last-{tstamp}.csv')
-
-            # Print or process the quotes in real time
-            logger.info(f"Current quotes: {live_prices.quotes}")
-            logger.info(f"Current candles: {live_prices.candles}")
-            logger.info(f"Current summaries: {live_prices.summaries}")
-            logger.info(f"Current trades {live_prices.trades}")
-            pathlib.Path(running_file).touch()
-            if os.path.exists(cancel_file):
-                logger.info(f"canceljob receieved...")
-                os.remove(cancel_file)
-                logger.info(f"canceling!")
-                await live_prices.shutdown()
-                if os.path.exists(running_file):
-                    os.remove(running_file)
-                raise ValueError("canceljob")
-            
-            # TODO: write gex csv and spot price json
-            await asyncio.sleep(1)
-            # cache she here.
-    except KeyboardInterrupt:
-        logger.error("Stopping live price streaming...")
-    finally:
-        if os.path.exists(running_file):
-            os.remove(running_file)
-
-def time_to_datetime(tstamp):
-    return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
-
-def get_underlying(folder_path,resample=None,lookback_tstamp=None):
-    json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
-    underlying_list = []
-    for json_file in json_list:
-        with open(json_file,'r') as f:
-            content = json.loads(f.read())
-            underlying_list.append(content)
-
-    df = pd.DataFrame(underlying_list)
-    df = df[df.time.notnull()]
-    if len(underlying_list)>0:
-        df['tstamp'] = df.time.apply(time_to_datetime)
-        df = df.set_index('tstamp')
-        print(df.shape)
-    if resample is None:
-        pass
-    else:
-        df = df[['time','eventSymbol','open','high','low','close']]
-        df = df.dropna()
-        mapper = {
-            "open":  "first",
-            "high":  "max",
-            "low":   "min",
-            "close": "last",
-            "time": "last",
-        }
-        df = df.groupby(pd.Grouper(freq=resample)).agg(mapper)
-        df = df.dropna()
-        df['tstamp'] = df.time.apply(time_to_datetime)
-    
-    return df
 #
 # TODO: implement scroll bar to scroll through time and plot gex
 #
@@ -374,26 +376,34 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     ticker = sys.argv[1]
-    if False:
+    action = sys.argv[2]
+    
+    if action == "background_subscribe":
         session = get_session()
         output = asyncio.run(background_subscribe(ticker,session))
     
-    daystamp = now_in_new_york().strftime("%Y-%m-%d")
-
-    folder_path = f'/shared/{ticker}/{daystamp}/{ticker}'
-    df = get_underlying(folder_path,resample=None,lookback_tstamp=None)
-    print(df.shape)
-    print(dict(df.iloc[-1]))
-    close = float(df.iloc[-1].close)
-    print(close)
-    df = get_underlying(folder_path,resample="1Min",lookback_tstamp=None)
-    print(df.shape)
-    print(dict(df.iloc[-1]))
-    close = float(df.iloc[-1].close)
-    print(close)
     
-    # df = get_option_chain_df(folder_path,lookback_tstamp="last")
-    # print(df[-1])
+    if action == "get_underlying_df":
+        daystamp = now_in_new_york().strftime("%Y-%m-%d")
+        folder_path = f'/shared/{ticker}/{daystamp}/{ticker}'
+        df = get_underlying_df(folder_path,resample=None,lookback_tstamp=None)
+        print(df.shape)
+        print(dict(df.iloc[-1]))
+        close = float(df.iloc[-1].close)
+        print(close)
+        df = get_underlying_df(folder_path,resample="1Min",lookback_tstamp=None)
+        print(df.shape)
+        print(dict(df.iloc[-1]))
+        close = float(df.iloc[-1].close)
+        print(close)
+    
+    if action == "get_gex_df":
+        mynow = now_in_new_york().strftime("%Y-%m-%d")
+        daystamp = mynow.strftime("%Y-%m-%d")
+        minstamp = mynow.strftime("%Y-%m-%d-%H-%M")
+        folder_path = f'/shared/{ticker}/{daystamp}'
+        df = get_gex_df(folder_path,lookback_tstamp="last")
+        print(df[-1])
 """
 cd ..
 
