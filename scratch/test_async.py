@@ -112,8 +112,8 @@ class LivePrices:
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
         await streamer.subscribe(EventType.GREEKS, streamer_symbols)
-        #start_date = datetime.datetime(2024,9,25,7,0,0)
-        start_time = now_in_new_york()
+        start_time = datetime.datetime(2024,9,25,7,0,0)
+        #start_time = now_in_new_york()
         # interval '15s', '5m', '1h', '3d',
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
 
@@ -150,26 +150,31 @@ class LivePrices:
         async for e in self.streamer.listen(EventType.QUOTE):
             logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
             logger.debug(str(e))
             self.candles[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
             logger.debug(str(e))
             self.summaries[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
             logger.debug(str(e))
             self.trades[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
     async def _update_greeks(self):
-        async for e in self.streamer.listen(EventType.TRADE):
+        async for e in self.streamer.listen(EventType.GREEKS):
             logger.debug(str(e))
             self.trades[e.eventSymbol] = e
+            save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
 def get_cancel_file(ticker):
     return f"/tmp/cancel-{ticker}.txt"
@@ -217,14 +222,14 @@ def loop_in_thread(loop,ticker,session):
 if __name__ == "__main__":
     logging.basicConfig(
         filename='mylog.txt',
-        level=logging.INFO,#level=logging.DEBUG,
+        level=logging.DEBUG, # level=logging.INFO,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     
     ticker = sys.argv[1]
     session = get_session()
-    if False:
+    if True:
         runshit(ticker,session)
     if False:
         loop = asyncio.get_event_loop()
