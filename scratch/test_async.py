@@ -62,19 +62,15 @@ def get_session(remember_me=True):
 
 
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):
-    print("here1111111111111111111111111111111111")
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
     workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
-    print(f"{tstamp} {workdir}")
     await aiofiles.os.makedirs(workdir,exist_ok=True)
-    print(f"mkdir done")
     uid = uuid.uuid4().hex
     json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
     async with aiofiles.open(json_file,'w') as f:
         event_dict = dict(event)
         await f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
-    print("here2222222222222222222222222")
 
 
 #
@@ -154,36 +150,27 @@ class LivePrices:
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
-            #logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
-            #logger.debug(str(e))
             streamer_symbols = e.eventSymbol.replace("{=15s,tho=true}","")
-            print("here000000000000000000000000000000CANDLE")
             self.candles[streamer_symbols] = e
             await save_data_to_json(self.ticker,streamer_symbols,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
-            #logger.debug(str(e))
-            print("here000000000000000000000000000000SUMMARY")
             self.summaries[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
-            #logger.debug(str(e))
-            print("here000000000000000000000000000000TRADE")
             self.trades[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
-            #logger.debug(str(e))
-            print("here000000000000000000000000000000GREEKS")
             self.trades[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
