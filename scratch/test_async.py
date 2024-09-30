@@ -112,8 +112,8 @@ class LivePrices:
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
         await streamer.subscribe(EventType.GREEKS, streamer_symbols)
-        start_time = datetime.datetime(2024,9,25,7,0,0)
-        #start_time = now_in_new_york()
+        #start_time = datetime.datetime(2024,9,25,7,0,0)
+        start_time = now_in_new_york()
         # interval '15s', '5m', '1h', '3d',
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
 
@@ -244,8 +244,9 @@ if __name__ == "__main__":
 
 cd ..
 
-docker run -it -u $(id -u):$(id -g) -p 80:80 \
-    --env-file .env \
+#docker run -it -u $(id -u):$(id -g) -p 80:80 \
+docker run -it -p 80:80 \
+    --env-file .env -e SHARED_DIR=/shared \
     -v ghetto-gex-live_shared:/shared \
     -v $PWD:/opt/app \
     -w /opt/app pangyuteng/ghetto-gex-live:latest bash
