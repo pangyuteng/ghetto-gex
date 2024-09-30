@@ -83,8 +83,6 @@ async def subscribe():
         resp = await make_response(jsonify({"tickers":ticker}))
         resp.headers['HX-Redirect'] = url_for("gex",tickers=ticker)
         return resp
-
-        return jsonify({"message":ticker})
     except:
         return jsonify({"message":traceback.format_exc()}),400
 
@@ -124,8 +122,6 @@ def get_data(ticker,kind,lookback_tstamp=None):
         df = df[(df.strike>price_min)&(df.strike<price_max)]
         df = df.sort_values(['strike'],ascending=False)
         df.replace(np.nan, None,inplace=True)
-        #last_option_tstamp = os.path.basename(df.csv_file.iloc[-1]).replace(".csv","").replace("option-chain-","")
-        #app.logger.debug(f"last_option_tstamp {last_option_tstamp}")
         data_json = df.to_dict('records')
         return data_json
     else:
