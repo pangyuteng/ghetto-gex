@@ -61,6 +61,7 @@ def get_session(remember_me=True):
 
 def save_data_to_json(ticker,streamer_symbols,event_type,event):
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
+    logger.info(f"{tstamp} @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@222 saving")
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
     workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
     os.makedirs(workdir,exists_ok=True)
@@ -69,6 +70,7 @@ def save_data_to_json(ticker,streamer_symbols,event_type,event):
     with open(json_file,'w') as f:
         event_dict = dict(event)
         f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
+    logger.info(f"{tstamp} !!!!!!!!!!!!!!!!!!!!!!!!!!!!111 saving")
 
 
 #
@@ -148,31 +150,31 @@ class LivePrices:
 
     async def _update_quotes(self):
         async for e in self.streamer.listen(EventType.QUOTE):
-            logger.debug(str(e))
+            #logger.debug(str(e))
             self.quotes[e.eventSymbol] = e
             save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
-            logger.debug(str(e))
+            #logger.debug(str(e))
             self.candles[e.eventSymbol] = e
             save_data_to_json(self.ticker,e.eventSymbol,EventType.CANDLE,e)
 
     async def _update_summaries(self):
         async for e in self.streamer.listen(EventType.SUMMARY):
-            logger.debug(str(e))
+            #logger.debug(str(e))
             self.summaries[e.eventSymbol] = e
             save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
 
     async def _update_trades(self):
         async for e in self.streamer.listen(EventType.TRADE):
-            logger.debug(str(e))
+            #logger.debug(str(e))
             self.trades[e.eventSymbol] = e
             save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
-            logger.debug(str(e))
+            #logger.debug(str(e))
             self.trades[e.eventSymbol] = e
             save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
@@ -222,11 +224,11 @@ def loop_in_thread(loop,ticker,session):
 if __name__ == "__main__":
     logging.basicConfig(
         filename='mylog.txt',
-        level=logging.DEBUG, # level=logging.INFO,
+        level=logging.INFO, # level=logging.DEBUG, # 
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-    
+    #logging.basicConfig(level=logging.INFO)
     ticker = sys.argv[1]
     session = get_session()
     if True:
