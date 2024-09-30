@@ -14,10 +14,12 @@ import datetime
 import json
 import pathlib
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
+import uuid
+import aiofiles
+import aiofiles.os
 import asyncio
 from dataclasses import dataclass
 from tastytrade import DXLinkStreamer
@@ -67,6 +69,118 @@ def get_session(remember_me=True):
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
 #
 
+async def save_data_to_json(ticker,streamer_symbols,event_type,event):
+    tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
+    daystamp = now_in_new_york().strftime("%Y-%m-%d")
+    workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
+    await aiofiles.os.makedirs(workdir,exist_ok=True)
+    uid = uuid.uuid4().hex
+    json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
+    async with aiofiles.open(json_file,'w') as f:
+        event_dict = dict(event)
+        await f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
+
+
+#
+# below are copy pastas authored by Graeme22
+# amazing stuff!!!
+# https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
+# commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
+#
+CANDLE_TYPE = '15s'
+@dataclass
+class LivePrices:
+    quotes: dict[str, Quote]
+    greeks: dict[str, Summary]
+    candles: dict[str, Candle]
+    summaries: dict[str, Summary]
+    trades: dict[str, Trade]
+    streamer: DXLinkStreamer
+    underlying: list[Equity]
+    puts: list[Option]
+    calls: list[Option]
+    streamer_symbols: list[str]
+    ticker: str
+    @classmethod
+    async def create(
+        cls,
+        session: Session,
+        ticker: str = 'SPY',
+        expiration: datetime.date = today_in_new_york()
+        ):
+
+        underlying = Equity.get_equity(session, ticker)
+        chain = get_option_chain(session, ticker)
+        options = [o for o in chain[expiration]]
+        # the `streamer_symbol` property is the symbol used by the streamer
+        streamer_symbols = [o.streamer_symbol for o in options]
+
+        streamer = await DXLinkStreamer.create(session)
+
+        # subscribe to quotes and greeks for all options on that date
+        await streamer.subscribe(EventType.QUOTE, [ticker] + streamer_symbols)
+        await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
+        await streamer.subscribe(EventType.TRADE, streamer_symbols)
+        await streamer.subscribe(EventType.GREEKS, streamer_symbols)
+        #start_time = datetime.datetime(2024,9,25,7,0,0)
+        start_time = now_in_new_york()
+        # interval '15s', '5m', '1h', '3d',
+        await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
+
+        puts = [o for o in options if o.option_type == OptionType.PUT]
+        calls = [o for o in options if o.option_type == OptionType.CALL]
+
+        self = cls({}, {}, {}, {}, {}, streamer, 
+            underlying, puts, calls, streamer_symbols,ticker)
+
+        t_listen_quotes = asyncio.create_task(self._update_quotes())
+        t_listen_summaries = asyncio.create_task(self._update_summaries())
+        t_listen_trades = asyncio.create_task(self._update_trades())
+        t_listen_greeks = asyncio.create_task(self._update_greeks())
+        t_listen_candles = asyncio.create_task(self._update_candles())
+        
+        asyncio.gather(t_listen_quotes, t_listen_candles, t_listen_summaries, t_listen_trades, t_listen_greeks)
+
+        # wait we have quotes and greeks for each option
+        while len(self.quotes) < 1 or len(self.greeks) < 1:
+            await asyncio.sleep(0.1)
+
+        return self
+
+    async def shutdown(self):
+        logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
+        await self.streamer.unsubscribe(EventType.QUOTE, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
+        await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
+        await self.streamer.unsubscribe_candle([ticker] + +self.streamer_symbols,CANDLE_TYPE)
+        await self.streamer.close()
+        logger.debug(f"sreamer closed...{self.streamer_symbols}")
+
+    async def _update_quotes(self):
+        async for e in self.streamer.listen(EventType.QUOTE):
+            self.quotes[e.eventSymbol] = e
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.QUOTE,e)
+
+    async def _update_candles(self):
+        async for e in self.streamer.listen(EventType.CANDLE):
+            streamer_symbols = e.eventSymbol.replace("{=15s,tho=true}","")
+            self.candles[streamer_symbols] = e
+            await save_data_to_json(self.ticker,streamer_symbols,EventType.CANDLE,e)
+
+    async def _update_summaries(self):
+        async for e in self.streamer.listen(EventType.SUMMARY):
+            self.summaries[e.eventSymbol] = e
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.SUMMARY,e)
+
+    async def _update_trades(self):
+        async for e in self.streamer.listen(EventType.TRADE):
+            self.trades[e.eventSymbol] = e
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.TRADE,e)
+
+    async def _update_greeks(self):
+        async for e in self.streamer.listen(EventType.GREEKS):
+            self.trades[e.eventSymbol] = e
+            await save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
 # sample eventSymbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
