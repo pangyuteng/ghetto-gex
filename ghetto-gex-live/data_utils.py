@@ -110,6 +110,7 @@ class LivePrices:
 
         underlying = Equity.get_equity(session, ticker)
         chain = get_option_chain(session, ticker)
+        expiration = sorted(list(chain.keys()))[0]
         options = [o for o in chain[expiration]]
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
@@ -141,7 +142,7 @@ class LivePrices:
         asyncio.gather(t_listen_quotes, t_listen_candles, t_listen_summaries, t_listen_trades, t_listen_greeks)
 
         # wait we have quotes and greeks for each option
-        while len(self.quotes) < 1 or len(self.greeks) < 1:
+        while len(self.quotes) < 1 or len(self.candles) < 1 or len(self.greeks) < 1:
             await asyncio.sleep(0.1)
 
         return self
@@ -198,9 +199,6 @@ async def background_subscribe(ticker,session):
         live_prices = await LivePrices.create(session,ticker)
 
         while True:
-            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
-            underlying_file = os.path.join(workdir,f'underlying-{tstamp}.csv')
-            gex_last_file = os.path.join(workdir,f'option-chain-last-{tstamp}.csv')
 
             # Print or process the quotes in real time
             logger.info(f"Current quotes: {live_prices.quotes}")
@@ -237,7 +235,9 @@ def get_underlying_df(ticker,tstamp,resample=None):
             underlying_list.append(content)
 
     df = pd.DataFrame(underlying_list)
-    df = df[df.time.notnull()]
+    if len(df)>0:
+        df = df[df.time.notnull()]
+
     if len(underlying_list)>0:
         df['tstamp'] = df.time.apply(time_to_datetime)
         df = df.set_index('tstamp')
@@ -279,9 +279,14 @@ def parse_symbol(eventSymbol):
 def get_gex_df(ticker,tstamp,tstamp_filter):
 
     underlying_df = get_underlying_df(ticker,tstamp)
-    spot_price = float(underlying_df.iloc[-1].close)
-    spot_price = np.array(spot_price).astype(float)
-    
+    try:
+        spot_price = float(underlying_df.iloc[-1].close)
+        spot_price = np.array(spot_price).astype(float)
+    except:
+        spot_price = np.nan
+        logger.error(traceback.format_exc())
+        return pd.DataFrame([])
+
     daystamp = tstamp.strftime("%Y-%m-%d")
     folder_path = os.path.join(shared_dir,ticker,daystamp)
     contract_folder_list =  sorted([os.path.join(folder_path,x) for x in os.listdir(folder_path) if f".{ticker}" in x])

@@ -105,6 +105,8 @@ def get_data(ticker,kind,lookback_tstamp=None):
     underlying_df = get_underlying_df(ticker,tstamp,resample=None)
     if kind == 'underlying':
         underlying_df.replace(np.nan, None,inplace=True)
+        if len(underlying_df) == 0:
+            return []
         data_json = underlying_df.to_dict('records')
         return data_json
     elif kind == 'optionchain':
@@ -120,6 +122,8 @@ def get_data(ticker,kind,lookback_tstamp=None):
         tstamp = now_in_new_york()
         dayfilter = tstamp.strftime("%Y-%m-%d")
         df = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
+        if len(df) == 0:
+            return []
         df = df[(df.strike>price_min)&(df.strike<price_max)]
         df = df.sort_values(['strike'],ascending=False)
         data_json = df.to_dict('records')
