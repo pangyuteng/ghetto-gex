@@ -230,8 +230,10 @@ async def background_subscribe(ticker,session,expiration_count=1):
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
-def get_underlying_df(folder_path,resample=None,lookback_tstamp=None):
-    json_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.json"))
+def get_underlying_df(ticker,tstamp,resample=None):
+    daystamp = tstamp.strftime("%Y-%m-%d")
+    candle_folder_path = os.path.join(shared_dir,ticker,daystamp,ticker,'Candle')
+    json_list = sorted(str(x) for x in pathlib.Path(candle_folder_path).rglob("*.json"))
     underlying_list = []
     for json_file in json_list:
         with open(json_file,'r') as f:
@@ -243,7 +245,6 @@ def get_underlying_df(folder_path,resample=None,lookback_tstamp=None):
     if len(underlying_list)>0:
         df['tstamp'] = df.time.apply(time_to_datetime)
         df = df.set_index('tstamp')
-        print(df.shape)
     if resample is None:
         pass
     else:
@@ -277,41 +278,77 @@ def parse_symbol(eventSymbol):
 #
 # is there a popular library with gex computation?
 #
-def get_gex_df(ticker,underlying,options_dict):
-    spot_price = underlying.candles[underlying.underlying.streamer_symbol].close
+#def get_gex_df(ticker,underlying,options_dict):
+# lookback_HMSFFFF LOL this is so bad
+def get_gex_df(ticker,tstamp,tstamp_filter):
+
+    underlying_df = get_underlying_df(ticker,tstamp)
+    spot_price = float(underlying_df.iloc[-1].close)
     spot_price = np.array(spot_price).astype(float)
-    mylist = []
-    for k,v in options_dict.items():
-        contract_list = []
-        contract_list.extend(v.calls)
-        contract_list.extend(v.puts)
-        for x in contract_list:
-            symbol = x.streamer_symbol
-            ticker,expiration,contractType,strike = parse_symbol(symbol)
-            gamma = v.greeks[symbol].gamma if symbol in v.greeks.keys() else np.nan
-            candleBidVolume = v.candles[symbol].bidVolume if symbol in v.candles.keys() else np.nan
-            candleAskVolume = v.candles[symbol].askVolume if symbol in v.candles.keys() else np.nan
-            candleDayVolume = v.candles[symbol].volume if symbol in v.candles.keys() else np.nan
-            tradeDayVolume = v.trades[symbol].dayVolume if symbol in v.trades.keys() else np.nan
-            prevDayVolume = v.summaries[symbol].prevDayVolume if symbol in v.summaries.keys() else np.nan
-            openInterest = v.summaries[symbol].openInterest if symbol in v.summaries.keys() else np.nan
-            
-            row = dict(
-                symbol=symbol,
-                ticker=ticker,
-                expiration=expiration,
-                contract_type=contractType,
-                strike=strike,
-                gamma=gamma,
-                candleBidVolume=candleBidVolume,
-                candleAskVolume=candleAskVolume,
-                candleDayVolume=candleDayVolume,
-                tradeDayVolume=tradeDayVolume,
-                prevDayVolume=prevDayVolume,
-                openInterest=openInterest,
-            )
-            mylist.append(row)
     
+    daystamp = tstamp.strftime("%Y-%m-%d")
+    folder_path = os.path.join(shared_dir,ticker,daystamp)
+    contract_folder_list =  sorted([os.path.join(folder_path,x) for x in os.listdir(folder_path) if f".{ticker}" in x])
+    
+    mylist = []
+    for contract_folder in contract_folder_list:
+        # Candle  Greeks  Quote  Summary  Trade
+        greeks_folder = os.path.join(contract_folder,"Greeks")
+        candle_folder = os.path.join(contract_folder,"Candle")
+        summary_folder = os.path.join(contract_folder,"Summary")
+        greeks_file_list = sorted([str(x) for x in pathlib.Path(greeks_folder).rglob(f"{tstamp_filter}*.json")])
+        candle_file_list = sorted([str(x) for x in pathlib.Path(candle_folder).rglob(f"{tstamp_filter}*.json")])
+        summary_file_list = sorted([str(x) for x in pathlib.Path(summary_folder).rglob(f"{tstamp_filter}*.json")])
+        streamer_symbol = os.path.basename(contract_folder)
+
+
+        ticker,expiration,contractType,strike = parse_symbol(streamer_symbol)
+        greeks_dict = {}
+        candle_dict = {}
+        summary_dict = {}
+
+        if len(greeks_file_list)>0:
+            greeks_file = greeks_file_list[-1]
+            with open(greeks_file,'r') as f:
+                greeks_dict = json.loads(f.read())
+
+        if len(candle_file_list)>0:
+            candle_file = candle_file_list[-1]
+            with open(candle_file,'r') as f:
+                candle_dict = json.loads(f.read())
+
+        if len(summary_file_list)>0:
+            summary_file = summary_file_list[-1]
+            with open(summary_file,'r') as f:
+                summary_file = json.loads(f.read())
+
+        if len(greeks_dict)>0:
+            gamma = greeks_dict['gamma']
+        else:
+            gamma = None
+
+        if len(candle_dict)>0:
+            candleDayVolume = candle_dict['volume']
+        else:
+            candleDayVolume = None
+
+        if len(summary_dict)>0:
+            openInterest = summary_dict['openInterest']
+        else:
+            openInterest = None
+            
+        row = dict(
+            symbol=streamer_symbol,
+            ticker=ticker,
+            expiration=expiration,
+            contract_type=contractType,
+            strike=strike,
+            gamma=gamma,
+            candleDayVolume=candleDayVolume,
+            openInterest=openInterest,
+        )
+        mylist.append(row)
+
     df = pd.DataFrame(mylist)
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     #
@@ -326,8 +363,6 @@ def get_gex_df(ticker,underlying,options_dict):
     df['spot_price'] = spot_price
     df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     df['gexCandleDayVolume'] = df['gamma'].astype(float) * df['candleDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
-    df['gexTradeDayVolume'] = df['gamma'].astype(float) * df['tradeDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
-    df['gexPrevDayVolume'] = df['gamma'].astype(float) * df['prevDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     return df
 
 #
@@ -384,26 +419,22 @@ if __name__ == "__main__":
     
     
     if action == "get_underlying_df":
-        daystamp = now_in_new_york().strftime("%Y-%m-%d")
-        folder_path = f'/shared/{ticker}/{daystamp}/{ticker}'
-        df = get_underlying_df(folder_path,resample=None,lookback_tstamp=None)
+        tstamp = now_in_new_york()
+        df = get_underlying_df(ticker,tstamp,resample=None,lookback_tstamp=None)
         print(df.shape)
         print(dict(df.iloc[-1]))
         close = float(df.iloc[-1].close)
         print(close)
-        df = get_underlying_df(folder_path,resample="1Min",lookback_tstamp=None)
+        df = get_underlying_df(ticker,tstamp,resample="1Min",lookback_tstamp=None)
         print(df.shape)
         print(dict(df.iloc[-1]))
         close = float(df.iloc[-1].close)
         print(close)
     
     if action == "get_gex_df":
-        mynow = now_in_new_york().strftime("%Y-%m-%d")
-        daystamp = mynow.strftime("%Y-%m-%d")
-        minstamp = mynow.strftime("%Y-%m-%d-%H-%M")
-        folder_path = f'/shared/{ticker}/{daystamp}'
-        df = get_gex_df(folder_path,lookback_tstamp="last")
-        print(df[-1])
+        tstamp = now_in_new_york()
+        df = get_gex_df(ticker,tstamp,tstamp_filter="2024-09-30-16")
+        
 """
 cd ..
 
