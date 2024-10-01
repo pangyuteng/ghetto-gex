@@ -79,7 +79,7 @@ async def subscribe():
                 os.remove(cancel_file)
             if os.path.exists(running_file):
                 return jsonify({"message":"job running alreay"})
-            #app.add_background_task(background_subscribe,ticker,session)
+            app.add_background_task(background_subscribe,ticker,session)
         resp = await make_response(jsonify({"tickers":ticker}))
         resp.headers['HX-Redirect'] = url_for("gex",tickers=ticker)
         return resp
