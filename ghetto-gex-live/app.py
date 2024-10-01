@@ -119,8 +119,7 @@ def get_data(ticker,kind,lookback_tstamp=None):
         price_min, price_max = close*PRCT_NEG,close*PRCT_POS
         tstamp = now_in_new_york()
         dayfilter = tstamp.strftime("%Y-%m-%d")
-        gex_df_list = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
-        df = gex_df_list[-1].copy()
+        df = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
         df = df[(df.strike>price_min)&(df.strike<price_max)]
         df = df.sort_values(['strike'],ascending=False)
         df.replace(np.nan, None,inplace=True)
@@ -150,10 +149,8 @@ async def gex_plot():
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
         put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
-        put_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="P"]
         call_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="C"]
-        call_gexPrevDayVolume = [x['gexPrevDayVolume'] for x in optionchain if x['contract_type']=="C"]
         call_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="C"]
         try:
             spot_price = float(underlying[-1]['close'])
@@ -200,10 +197,8 @@ async def gex_plot():
             spot_price=spot_price,
             strike_list=strike_list,
             put_gexCandleDayVolume=put_gexCandleDayVolume,
-            put_gexPrevDayVolume=put_gexPrevDayVolume,
             put_gexSummaryOpenInterest=put_gexSummaryOpenInterest,
             call_gexCandleDayVolume=call_gexCandleDayVolume,
-            call_gexPrevDayVolume=call_gexPrevDayVolume,
             call_gexSummaryOpenInterest=call_gexSummaryOpenInterest,
             underlying=underlying,
             optionchain=optionchain,
