@@ -85,7 +85,7 @@ async def save_data_to_json(ticker,streamer_symbols,event_type,event):
 # amazing stuff!!!
 # https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
-#
+# # interval '15s', '5m', '1h', '3d',
 CANDLE_TYPE = '15s'
 @dataclass
 class LivePrices:
@@ -116,15 +116,14 @@ class LivePrices:
         streamer_symbols = [o.streamer_symbol for o in options]
 
         streamer = await DXLinkStreamer.create(session)
-
         # subscribe to quotes and greeks for all options on that date
         await streamer.subscribe(EventType.QUOTE, [ticker] + streamer_symbols)
         await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
         await streamer.subscribe(EventType.TRADE, streamer_symbols)
         await streamer.subscribe(EventType.GREEKS, streamer_symbols)
-        #start_time = datetime.datetime(2024,9,25,7,0,0)
+        
         start_time = now_in_new_york()
-        # interval '15s', '5m', '1h', '3d',
+        start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
 
         puts = [o for o in options if o.option_type == OptionType.PUT]
