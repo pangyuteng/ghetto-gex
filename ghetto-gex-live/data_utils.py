@@ -141,7 +141,7 @@ class LivePrices:
         asyncio.gather(t_listen_quotes, t_listen_candles, t_listen_summaries, t_listen_trades, t_listen_greeks)
 
         # wait we have quotes and greeks for each option
-        while len(self.quotes) < 1 or len(self.candles) < 1 or len(self.greeks) < 1:
+        while len(self.quotes) < 1 or len(self.candles) < 1 or len(self.greeks) < 1 or len(self.summaries) < 1 or len(self.trades) < 1:
             await asyncio.sleep(0.1)
 
         return self
@@ -178,7 +178,7 @@ class LivePrices:
 
     async def _update_greeks(self):
         async for e in self.streamer.listen(EventType.GREEKS):
-            self.trades[e.eventSymbol] = e
+            self.greeks[e.eventSymbol] = e
             await save_data_to_json(self.ticker,e.eventSymbol,EventType.GREEKS,e)
 
 def get_cancel_file(ticker):
