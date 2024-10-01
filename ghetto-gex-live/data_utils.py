@@ -163,7 +163,7 @@ class LivePrices:
 
     async def _update_candles(self):
         async for e in self.streamer.listen(EventType.CANDLE):
-            streamer_symbols = e.eventSymbol.replace("{=15s,tho=true}","")
+            streamer_symbols = e.eventSymbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candles[streamer_symbols] = e
             await save_data_to_json(self.ticker,streamer_symbols,EventType.CANDLE,e)
 
@@ -377,34 +377,7 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
 # TODO: implement scroll bar to scroll through time and plot gex
 #
 def get_option_chain_df(folder_path,lookback_tstamp=None):
-    csv_list = sorted(str(x) for x in pathlib.Path(folder_path).rglob("*.csv"))
-    gex_df_list = []
-    if lookback_tstamp == "last":
-        csv_list = [csv_list[-1]]
-    elif lookback_tstamp == "all":
-        pass
-    else:
-        raise NotImplementedError()
-    
-    # 
-    # TODO: resampling / data tally here is required!
-    #
-    #  + per https://github.com/tastyware/tastytrade/blob/master/tastytrade/dxfeed/candle.py
-    # 
-    #    candle volume is the total volume of the candle
-    #    first figure out the frequecy of the event data for quote and greeks
-    #    probably better to sum every 30sec/1min?
-    #   
-    #    this would mean you need to figure out if you can gather all the chain or just 0dte/single-expiry
-    #    and if you can afford do that every second. 
-    #     
-    #    then think about if you can do multiple tickers...
-    # 
-    for csv_file in csv_list:
-        df = pd.read_csv(csv_file)
-        df['csv_file']=csv_file
-        gex_df_list.append(df)
-    return gex_df_list
+    raise NotImplementedError()
     
 if __name__ == "__main__":
     logging.basicConfig(
@@ -422,16 +395,14 @@ if __name__ == "__main__":
     
     if action == "get_underlying_df":
         tstamp = now_in_new_york()
-        df = get_underlying_df(ticker,tstamp,resample=None,lookback_tstamp=None)
+        df = get_underlying_df(ticker,tstamp,resample=None)
         print(df.shape)
-        print(dict(df.iloc[-1]))
-        close = float(df.iloc[-1].close)
-        print(close)
-        df = get_underlying_df(ticker,tstamp,resample="1Min",lookback_tstamp=None)
+        if len(df) > 0:
+            print(dict(df.iloc[-1]))
+        df = get_underlying_df(ticker,tstamp,resample="1Min")
         print(df.shape)
-        print(dict(df.iloc[-1]))
-        close = float(df.iloc[-1].close)
-        print(close)
+        if len(df) > 0:
+            print(dict(df.iloc[-1]))
     
     if action == "get_gex_df":
         tstamp = now_in_new_york()
