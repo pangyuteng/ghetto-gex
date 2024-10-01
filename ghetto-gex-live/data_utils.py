@@ -187,16 +187,15 @@ def get_cancel_file(ticker):
 def get_running_file(ticker):
     return f"/tmp/running-{ticker}.txt"
 
-async def background_subscribe(ticker,session,expiration_count=1):
+async def background_subscribe(ticker,session):
     try:
 
         running_file = get_running_file(ticker)
         cancel_file = get_cancel_file(ticker)
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
+
         live_prices = await LivePrices.create(session,ticker)
-        workdir = os.path.join(shared_dir,'gex',ticker)
-        os.makedirs(workdir,exist_ok=True)
 
         while True:
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
@@ -209,6 +208,7 @@ async def background_subscribe(ticker,session,expiration_count=1):
             logger.info(f"Current summaries: {live_prices.summaries}")
             logger.info(f"Current trades {live_prices.trades}")
             pathlib.Path(running_file).touch()
+            await asyncio.sleep(5)
             if os.path.exists(cancel_file):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
@@ -217,10 +217,6 @@ async def background_subscribe(ticker,session,expiration_count=1):
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
-            
-            # TODO: write gex csv and spot price json
-            await asyncio.sleep(1)
-            # cache she here.
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
