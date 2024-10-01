@@ -90,7 +90,7 @@ CANDLE_TYPE = '15s'
 @dataclass
 class LivePrices:
     quotes: dict[str, Quote]
-    greeks: dict[str, Summary]
+    greeks: dict[str, Greeks]
     candles: dict[str, Candle]
     summaries: dict[str, Summary]
     trades: dict[str, Trade]
