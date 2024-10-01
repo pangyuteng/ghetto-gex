@@ -122,7 +122,6 @@ def get_data(ticker,kind,lookback_tstamp=None):
         df = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
         df = df[(df.strike>price_min)&(df.strike<price_max)]
         df = df.sort_values(['strike'],ascending=False)
-        df.replace(np.nan, None,inplace=True)
         data_json = df.to_dict('records')
         return data_json
     else:

@@ -322,20 +322,21 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
             with open(summary_file,'r') as f:
                 summary_file = json.loads(f.read())
 
+        # maye not a good idea to put 0
         if len(greeks_dict)>0:
             gamma = greeks_dict['gamma']
         else:
-            gamma = None
+            gamma = 0
 
         if len(candle_dict)>0:
             candleDayVolume = candle_dict['volume']
         else:
-            candleDayVolume = None
+            candleDayVolume = 0
 
         if len(summary_dict)>0:
             openInterest = summary_dict['openInterest']
         else:
-            openInterest = None
+            openInterest = 0
             
         row = dict(
             symbol=streamer_symbol,
