@@ -1,0 +1,5 @@
+services:
+    flask:
+        volumes:
+            - shared:/shared
+            - ${PWD}:/opt/app
