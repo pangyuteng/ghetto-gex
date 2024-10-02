@@ -24,13 +24,18 @@ from data_utils import (
     get_underlying_df,get_gex_df,now_in_new_york
 )
 
-session = get_session()
 app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
     template_folder='templates',
 )
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+try:
+    session = get_session()
+except:
+    session = None
+    app.logger.error("tastytrade login failure")
+
 shared_dir = os.environ.get("SHARED_DIR")
 
 @app.route('/ping', methods=['GET'])
@@ -40,9 +45,7 @@ async def ping():
 @app.route('/', methods=['GET'])
 async def index():
     message = None
-    session = None
     try:
-        session = get_session()
         is_test = is_test_func()
     except:
         app.logger.error(traceback.format_exc())
