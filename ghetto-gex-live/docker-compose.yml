@@ -8,7 +8,6 @@ services:
         environment:
             SHARED_DIR: /shared
         volumes:
-            - ${PWD}:/opt/app
             - shared:/shared
         restart: always
         ports:

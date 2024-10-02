@@ -14,4 +14,4 @@ ENV MPLCONFIGDIR=/opt/.config/matplotlib
 ENV TZ="UTC"
 
 WORKDIR /opt/app
-
+COPY . .
