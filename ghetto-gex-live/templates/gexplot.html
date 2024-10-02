@@ -295,8 +295,9 @@
         
 </script>
 <div id="refreshChart{{ticker}}">
-<span class="badge text-bg-secondary">trigger_tstamp: {{ trigger_tstamp }}</span>
-<br>{{ positive_y }}
-<br>{{ negative_y }}
+<div>
+<span class="badge text-bg-secondary">trigger_tstamp: {{ trigger_tstamp }}</span><br>
+<span class="badge text-bg-secondary">max,min gex_strike:{{ positive_y }}, {{ negative_y }}</span>
 </div>
-<div hx-get="/gex-plot" hx-trigger="every 5s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
+</div>
+<div hx-get="/gex-plot" hx-trigger="every 1s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>

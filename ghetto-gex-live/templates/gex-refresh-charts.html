@@ -1,7 +1,7 @@
+
 <div>
-<span class="badge text-bg-secondary">trigger_tstamp: {{ trigger_tstamp }}</span>
-<br>{{ positive_y }}
-<br>{{ negative_y }}
+  <span class="badge text-bg-secondary">trigger_tstamp: {{ trigger_tstamp }}</span><br>
+  <span class="badge text-bg-secondary">max,min gex_strike:{{ positive_y }}, {{ negative_y }}</span>
 </div>
 <script>
 
@@ -9,8 +9,8 @@ var price_min = {{ price_min }};
 var price_max = {{ price_max }};
 var time_min = {{ time_min }}; 
 var time_max = {{ time_max }};
-var positive_y = {{ positive_y }};
-var negative_y = {{ negative_y }};
+var positive_y = {{ positive_y | float }};
+var negative_y = {{ negative_y | float }};
 var candle_data = [
 {% for item in underlying %}
   {

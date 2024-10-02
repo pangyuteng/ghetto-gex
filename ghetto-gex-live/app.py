@@ -178,9 +178,10 @@ async def gex_plot():
         time_min = min_tstamp
         time_max = max_tstamp
         try:
-            sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
-            positive_y = int(sorted_optionchain[-1]['strike'])
-            negative_y = int(sorted_optionchain[0]['strike'])
+            c_sorted_optionchain = sorted([x for x in optionchain if x['contract_type']=='C' and x['gexCandleDayVolume'] > 0 ],key=lambda x:x['gexCandleDayVolume'] )
+            p_sorted_optionchain = sorted([x for x in optionchain if x['contract_type']=='P' and x['gexCandleDayVolume'] < 0 ],key=lambda x:x['gexCandleDayVolume'] )
+            positive_y = float(c_sorted_optionchain[-1]['strike'])
+            negative_y = float(p_sorted_optionchain[0]['strike'])
         except:
             app.logger.warning(traceback.format_exc())
             positive_y = 0
