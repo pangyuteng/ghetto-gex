@@ -296,4 +296,4 @@
 </script>
 <div id="refreshChart{{ticker}}">
 </div>
-<div hx-get="/gex-plot" hx-trigger="every 10s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
+<div hx-get="/gex-plot" hx-trigger="every 5s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
