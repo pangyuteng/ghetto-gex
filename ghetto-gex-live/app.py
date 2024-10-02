@@ -77,10 +77,12 @@ async def subscribe():
             cancel_file = get_cancel_file(ticker)
             if os.path.exists(cancel_file):
                 os.remove(cancel_file)
-            if os.path.exists(running_file):
-                return jsonify({"message":"job running alreay"})
-            app.add_background_task(background_subscribe,ticker,session)
-        resp = await make_response(jsonify({"tickers":ticker}))
+            if not os.path.exists(running_file):
+                app.add_background_task(background_subscribe,ticker,session)
+                resp = await make_response(jsonify({"tickers":ticker}))
+            else:
+                resp = await make_response(jsonify({"message":f"{ticker} job running already"}))
+        # TODO: make up your mind on ticker or tickerS
         resp.headers['HX-Redirect'] = url_for("gex",tickers=ticker)
         return resp
     except:

@@ -320,7 +320,7 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
         if len(summary_file_list)>0:
             summary_file = summary_file_list[-1]
             with open(summary_file,'r') as f:
-                summary_file = json.loads(f.read())
+                summary_dict = json.loads(f.read())
 
         # maye not a good idea to put 0
         if len(greeks_dict)>0:
