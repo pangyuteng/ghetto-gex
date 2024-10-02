@@ -15,8 +15,8 @@
 
         var price_min = {{ price_min }};
         var price_max = {{ price_max }};
-        var time_min = {{ time_min }}; 
-        var time_max = {{ time_max }};
+        var time_min = {{ time_min | int }};
+        var time_max = {{ time_max | int }};
         var positive_y = {{ positive_y }};
         var negative_y = {{ negative_y }};
         var candle_data = [
@@ -70,7 +70,7 @@
           enabled: false
         },
         stroke: {
-          width: 1,
+          width: 0.5,
           colors: ["#fff"]
         },
         
@@ -155,7 +155,7 @@
           enabled: false
         },
         stroke: {
-          width: 1,
+          width: 0.5,
           colors: ["#fff"]
         },
         
@@ -207,34 +207,35 @@
       
         var options = {
           series: [{
-          name: 'positive-peak',
-          type: 'line',
-          data: [
-            {
-              x: time_min,
-              y: positive_y
-            }, {
-              x: time_max,
-              y: positive_y
-            }
-          ]
-          },{
-          name: 'negative-peak',
-          type: 'line',
-          data: [
-            {
-              x: time_min,
-              y: negative_y
-            }, {
-              x: time_max,
-              y: negative_y
-            }
-          ]
-          }, {
-          name: 'candle',
-          type: 'candlestick',
-          data: candle_data
-        }],
+            name: 'candle',
+            type: 'candlestick',
+            data: candle_data
+            },{
+            name: 'positive-peak',
+            type: 'line',
+            data: [
+              {
+                x: new Date(time_min),
+                y: positive_y
+              }, {
+                x: new Date(time_max),
+                y: positive_y
+              }
+            ]
+            },{
+            name: 'negative-peak',
+            type: 'line',
+            data: [
+              {
+                x: new Date(time_min),
+                y: negative_y
+              }, {
+                x: new Date(time_max),
+                y: negative_y
+              }
+             ]
+             }
+          ],
           chart: {
           foreColor: '#fff',
           height: 440,
@@ -245,10 +246,6 @@
         title: {
           text: '{{ticker}}:{{spot_price}}',
           align: 'left'
-        },
-        yaxis: { 
-            min: price_min,
-            max: price_max
         },
         stroke: {
           width: [3, 4, 2],
@@ -285,8 +282,12 @@
         },
         xaxis: {
           type: 'datetime',
-          min: time_min,
-          max: time_max
+          min: new Date(time_min),
+          max: new Date(time_max)
+        },
+        yaxis: {
+          min: price_min,
+          max: price_max
         }
         };
 

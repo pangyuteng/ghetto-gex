@@ -175,8 +175,8 @@ async def gex_plot():
             price_min = 0
             price_max = 0
 
-        time_min = f"new Date({min_tstamp})"
-        time_max = f"new Date({max_tstamp})"
+        time_min = min_tstamp
+        time_max = max_tstamp
         try:
             sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
             positive_y = float(sorted_optionchain[-1]['strike'])
