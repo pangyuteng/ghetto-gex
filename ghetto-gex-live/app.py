@@ -102,7 +102,7 @@ async def gex():
 # TODO: need a python df + class for option chains funcs.
 #
 PRCT_NEG,PRCT_POS = 0.98,1.02
-def get_data(ticker,kind,lookback_tstamp=None):
+def get_data(ticker,kind):
     tstamp = now_in_new_york()
     underlying_df = get_underlying_df(ticker,tstamp,resample=None)
     if kind == 'underlying':
@@ -133,23 +133,16 @@ def get_data(ticker,kind,lookback_tstamp=None):
     else:
         raise NotImplementedError()
 
-@app.route('/data/<ticker>/<kind>')
-async def _data(ticker,kind,lookback_tstamp=None):
-    try:
-        return get_data(ticker,kind,lookback_tstamp=lookback_tstamp)
-    except:
-        app.logger.error(traceback.format_exc())
-        return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/gex-plot', methods=['GET'])
 async def gex_plot():
     try:
         ticker = request.args.to_dict()['ticker']
         refreshonly = True if request.args.to_dict()['refreshonly']=='true' else False
-        lookback_tstamp = request.args.to_dict().get('tstamp',None)
 
-        underlying = get_data(ticker,'underlying',lookback_tstamp=lookback_tstamp)
-        optionchain = get_data(ticker,'optionchain',lookback_tstamp=lookback_tstamp)
+        trigger_tstamp = now_in_new_york()
+        underlying = get_data(ticker,'underlying')
+        optionchain = get_data(ticker,'optionchain')
 
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
@@ -161,7 +154,7 @@ async def gex_plot():
             spot_price = float(underlying[-1]['close'])
         except:
             app.logger.warning(traceback.format_exc())
-            spot_price = 0
+            spot_price = -1
 
         # TODO: determine range to show. past 30min
         time_list = [x['time'] for x in underlying]
@@ -213,6 +206,7 @@ async def gex_plot():
             time_max=time_max,
             price_min=price_min,
             price_max=price_max,
+            trigger_tstamp=trigger_tstamp,
         )
     except:
         app.logger.error(traceback.format_exc())
