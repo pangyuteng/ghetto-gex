@@ -162,7 +162,7 @@ async def gex_plot():
         # TODO: determine range to show. past 30min
         time_list = [x['time'] for x in underlying]
         max_tstamp = max(time_list)
-        LOOKBACK_SEC = 2*60*60
+        LOOKBACK_SEC = 2*60*30
         min_tstamp = max_tstamp-1000*LOOKBACK_SEC
         underlying = [x for x in underlying if x['time']>min_tstamp]
 
@@ -179,8 +179,8 @@ async def gex_plot():
         time_max = max_tstamp
         try:
             sorted_optionchain = sorted(optionchain,key=lambda x:x['gexCandleDayVolume'])
-            positive_y = float(sorted_optionchain[-1]['strike'])
-            negative_y = float(sorted_optionchain[0]['strike'])
+            positive_y = int(sorted_optionchain[-1]['strike'])
+            negative_y = int(sorted_optionchain[0]['strike'])
         except:
             app.logger.warning(traceback.format_exc())
             positive_y = 0

@@ -28,7 +28,7 @@ this is an attempt to obtain/compute/view intraday gamma exposure (GEX)* using T
 
 ### usage
 
-+ you will first need to apply for a TastyTrade trading account [use my referal link](https://open.tastytrade.com/signup?referralCode=VH3PTJ43AD), then request for API acess, and get a Sandbox credential. this gets you access to 15-min delayed quotes. I have not gotten this API thing to work with production credentials yet, i locks me out immediately, and I can trade... so for now, am using only Sandbox for fun.
++ you will first need to apply for a TastyTrade trading account [use my referal link](https://open.tastytrade.com/signup?referralCode=VH3PTJ43AD), then request for API access, and get a Sandbox credential. this gets you access to 15-min delayed quotes. You can also try to access the API with producion credentials, but be careful as it could lock your account if you are doing developer with constant get_session triggeres, so dont attempt doing dev with prod credentials, especially when you are actively trading, if account locked, you'll need to contact tastytrade for support.
 
 + git clone the repo
 

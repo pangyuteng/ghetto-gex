@@ -248,10 +248,9 @@
           align: 'left'
         },
         stroke: {
-          width: [3, 4, 2],
-          dashArray: [1, 5, 0]
+          width: [2, 3, 3],
         },
-        colors: ['#f58d05', '#2e82e8','#fff'],
+        colors: ['#fff','#f58d05', '#2e82e8'],
         tooltip: {
           theme: 'dark',
           shared: true,
@@ -282,8 +281,8 @@
         },
         xaxis: {
           type: 'datetime',
-          min: new Date(time_min),
-          max: new Date(time_max)
+          //min: new Date(time_min),
+          //max: new Date(time_max)
         },
         yaxis: {
           min: price_min,
@@ -297,5 +296,7 @@
 </script>
 <div id="refreshChart{{ticker}}">
 <span class="badge text-bg-secondary">trigger_tstamp: {{ trigger_tstamp }}</span>
+<br>{{ positive_y }}
+<br>{{ negative_y }}
 </div>
 <div hx-get="/gex-plot" hx-trigger="every 5s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
