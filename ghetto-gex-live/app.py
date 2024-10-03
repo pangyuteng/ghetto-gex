@@ -21,7 +21,8 @@ from data_utils import (
     get_session,is_test_func,
     get_cancel_file, get_running_file, 
     background_subscribe, 
-    get_underlying_df,get_gex_df,now_in_new_york
+    get_underlying_df,get_gex_df,
+    now_in_new_york, get_candle_tstamp_list
 )
 
 app = Quart(__name__,
@@ -105,10 +106,9 @@ async def gex():
 # TODO: need a python df + class for option chains funcs.
 #
 PRCT_NEG,PRCT_POS = 0.98,1.02
-def get_data(ticker,kind):
+def get_data(ticker,kind,tstamp_filter):
     tstamp = now_in_new_york()
-    dayfilter = tstamp.strftime("%Y-%m-%d")
-    underlying_df = get_underlying_df(ticker,tstamp,resample=None,tstamp_filter=dayfilter)
+    underlying_df = get_underlying_df(ticker,tstamp,resample=None,tstamp_filter=tstamp_filter)
     if kind == 'underlying':
         underlying_df.replace(np.nan, None,inplace=True)
         if len(underlying_df) == 0:
@@ -125,7 +125,7 @@ def get_data(ticker,kind):
             close = np.nan
 
         price_min, price_max = close*PRCT_NEG,close*PRCT_POS
-        df = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
+        df = get_gex_df(ticker,tstamp,tstamp_filter=tstamp_filter)
         if len(df) == 0:
             return []
         df = df[(df.strike>price_min)&(df.strike<price_max)]
@@ -139,12 +139,14 @@ def get_data(ticker,kind):
 @app.route('/gex-plot', methods=['GET'])
 async def gex_plot():
     try:
-        ticker = request.args.to_dict()['ticker']
-        refreshonly = True if request.args.to_dict()['refreshonly']=='true' else False
 
         trigger_tstamp = now_in_new_york()
-        underlying = get_data(ticker,'underlying')
-        optionchain = get_data(ticker,'optionchain')
+        ticker = request.args.get('ticker')
+        tstamp_filter = request.args.get('tstamp_filter',trigger_tstamp.strftime("%Y-%m-%d"))
+        refreshonly = True if request.args.get('refreshonly') == 'true' else False
+        
+        underlying = get_data(ticker,'underlying',tstamp_filter)
+        optionchain = get_data(ticker,'optionchain',tstamp_filter)
 
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
@@ -158,12 +160,17 @@ async def gex_plot():
             app.logger.warning(traceback.format_exc())
             spot_price = -1
 
-        # TODO: determine range to show. past 30min
-        time_list = [x['time'] for x in underlying]
-        max_tstamp = max(time_list)
-        LOOKBACK_SEC = 2*60*30
-        min_tstamp = max_tstamp-1000*LOOKBACK_SEC
-        underlying = [x for x in underlying if x['time']>min_tstamp]
+        try:
+            # TODO: determine range to show. past 30min
+            time_list = [x['time'] for x in underlying]
+            max_tstamp = max(time_list)
+            LOOKBACK_SEC = 2*60*30
+            min_tstamp = max_tstamp-1000*LOOKBACK_SEC
+            underlying = [x for x in underlying if x['time']>min_tstamp]
+        except:
+            app.logger.warning(traceback.format_exc())
+            max_tstamp = -1
+            min_tstamp = -1
 
         try:
             close_list = [float(x['close']) for x in underlying if x['close'] is not None]
@@ -190,8 +197,10 @@ async def gex_plot():
 
         if refreshonly:
             html_basename =  'gex-refresh-charts.html'
+            candle_tstamp_list = []
         else:
             html_basename = 'gexplot.html'
+            candle_tstamp_list = get_candle_tstamp_list(ticker)
 
         return await render_template(html_basename,
             ticker=ticker,
@@ -210,6 +219,7 @@ async def gex_plot():
             price_min=price_min,
             price_max=price_max,
             trigger_tstamp=trigger_tstamp,
+            candle_tstamp_list=candle_tstamp_list,
         )
     except:
         app.logger.error(traceback.format_exc())

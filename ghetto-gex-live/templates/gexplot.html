@@ -300,4 +300,41 @@
 <span class="badge text-bg-secondary">max,min gex_strike:{{ positive_y }}, {{ negative_y }}</span>
 </div>
 </div>
-<div hx-get="/gex-plot" hx-trigger="every 1s" hx-vals='{"ticker":"{{ticker}}","refreshonly":true}' hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML"></div>
+
+<script>
+var tstamp_list = {{ candle_tstamp_list | tojson }};
+function getTstampFilter(){
+  return null;
+  /*
+  console.log('haha');
+  var tstampfilter = null;
+  console.log(tstampfilter);
+  var sliderValue = Math.floor(document.getElementById("slider").value);
+  if (sliderValue != 100){
+    console.log('hihi');
+    var idx = Math.floor(tstamp_list.length*sliderValue/100)
+    console.log('hoho');
+    console.log(sliderValue);
+    console.log(tstamp_list.length);
+    console.log(idx);
+    tstampfilter = tstamp_list[idx];
+  }
+  console.log(tstampfilter);
+  return tstampfilter
+  // hx-vals='js:{"ticker":"{{ticker}}","refreshonly":true,"tstamp_filter":getTstampFilter()}' 
+  */
+ 
+}
+</script>
+<!--
+<label for="slider" class="form-label">time</label>
+<input type="range" class="form-range" min="0" max="100" value="100" step="0.5" id="slider">
+
+-->
+<div hx-get="/gex-plot" hx-trigger="every 1s" 
+    hx-vals='js:{"ticker":"{{ticker}}","refreshonly":true}' 
+    hx-target="#refreshChart{{ticker}}" hx-swap="innerHTML">
+</div>
+
+<br>
+

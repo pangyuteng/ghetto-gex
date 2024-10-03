@@ -223,6 +223,18 @@ async def background_subscribe(ticker,session):
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
 
+
+def get_candle_tstamp_list(ticker):
+    ticker_Folder = os.path.join(shared_dir,ticker)
+    candle_json_file_list = []
+    for x in os.listdir(ticker_Folder):
+        date_folder = os.path.join(ticker_Folder,x,ticker)
+        tmp_list = [str(x) for x in pathlib.Path(date_folder).rglob("*Candle/*.json")]
+        candle_json_file_list.extend(tmp_list)
+
+    candle_tstamp_list = sorted(list(set([os.path.basename(x).split(".")[0] for x in candle_json_file_list])))
+    return candle_tstamp_list
+
 def get_underlying_df(ticker,tstamp,resample=None,tstamp_filter=None):
 
     daystamp = tstamp.strftime("%Y-%m-%d")
