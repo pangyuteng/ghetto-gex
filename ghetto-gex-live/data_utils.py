@@ -314,9 +314,11 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
         greeks_folder = os.path.join(contract_folder,"Greeks")
         candle_folder = os.path.join(contract_folder,"Candle")
         summary_folder = os.path.join(contract_folder,"Summary")
+        trade_folder = os.path.join(contract_folder,"Trade")
         greeks_file_list = sorted([str(x) for x in pathlib.Path(greeks_folder).rglob(f"{tstamp_filter}*.json")])
         candle_file_list = sorted([str(x) for x in pathlib.Path(candle_folder).rglob(f"{tstamp_filter}*.json")])
         summary_file_list = sorted([str(x) for x in pathlib.Path(summary_folder).rglob(f"{tstamp_filter}*.json")])
+        trade_file_list = sorted([str(x) for x in pathlib.Path(trade_folder).rglob(f"{tstamp_filter}*.json")])
         streamer_symbol = os.path.basename(contract_folder)
 
 
@@ -324,7 +326,7 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
         greeks_dict = {}
         candle_dict = {}
         summary_dict = {}
-
+        trade_dict = {}
         if len(greeks_file_list)>0:
             greeks_file = greeks_file_list[-1]
             with open(greeks_file,'r') as f:
@@ -340,6 +342,11 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
             with open(summary_file,'r') as f:
                 summary_dict = json.loads(f.read())
 
+        if len(trade_file_list)>0:
+            trade_file = trade_file_list[-1]
+            with open(trade_file,'r') as f:
+                trade_dict = json.loads(f.read())
+
         # maye not a good idea to put 0
         if len(greeks_dict)>0:
             gamma = greeks_dict['gamma']
@@ -347,14 +354,19 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
             gamma = 0
 
         if len(candle_dict)>0:
-            candleDayVolume = candle_dict['volume']
+            candleVolume = candle_dict['volume']
         else:
-            candleDayVolume = 0
+            candleVolume = 0
+
+        if len(candle_dict)>0:
+            tradeDayVolume = trade_dict['dayVolume']
+        else:
+            tradeDayVolume = 0
 
         if len(summary_dict)>0:
-            openInterest = summary_dict['openInterest']
+            summaryOpenInterest = summary_dict['openInterest']
         else:
-            openInterest = 0
+            summaryOpenInterest = 0
             
         row = dict(
             symbol=streamer_symbol,
@@ -363,8 +375,9 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
             contract_type=contractType,
             strike=strike,
             gamma=gamma,
-            candleDayVolume=candleDayVolume,
-            openInterest=openInterest,
+            tradeDayVolume=tradeDayVolume,
+            summaryOpenInterest=summaryOpenInterest,
+            candleVolume=candleVolume,
         )
         mylist.append(row)
 
@@ -380,8 +393,9 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
     # 
 
     df['spot_price'] = spot_price
-    df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['openInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
-    df['gexCandleDayVolume'] = df['gamma'].astype(float) * df['candleDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
+    df['gexSummaryOpenInterest'] = df['gamma'].astype(float) * df['summaryOpenInterest'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
+    df['gexCandleVolume'] = df['gamma'].astype(float) * df['candleVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
+    df['gextradeDayVolume'] = df['gamma'].astype(float) * df['tradeDayVolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
     return df
 
 #

@@ -29,8 +29,8 @@
           ];
         var call_gexSummaryOpenInterest = {{ call_gexSummaryOpenInterest | tojson }};
         var put_gexSummaryOpenInterest = {{ put_gexSummaryOpenInterest | tojson }};
-        var call_gexCandleDayVolume = {{ call_gexCandleDayVolume | tojson }};
-        var put_gexCandleDayVolume = {{ put_gexCandleDayVolume | tojson }};
+        var call_gexTradeDayVolume = {{ call_gexTradeDayVolume | tojson }};
+        var put_gexTradeDayVolume = {{ put_gexTradeDayVolume | tojson }};
         var strike_list = {{ strike_list | tojson }};
         var spot_price = "{{ spot_price }}" ;
 
@@ -123,12 +123,12 @@
           series: [{
           name: 'Calls',
           type: 'bar',
-          data: call_gexCandleDayVolume
+          data: call_gexTradeDayVolume
         },
         {
           name: 'Puts',
           type: 'bar',
-          data: put_gexCandleDayVolume
+          data: put_gexTradeDayVolume
         },
         ],
           chart: {

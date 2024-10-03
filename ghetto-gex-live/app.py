@@ -163,9 +163,9 @@ async def gex_plot():
 
         strike_list = sorted(list(set([x['strike'] for x in optionchain])),reverse=True)
         strike_list = [int(x) for x in strike_list]
-        put_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="P"]
+        put_gexTradeDayVolume = [x['gextradeDayVolume'] for x in optionchain if x['contract_type']=="P"]
         put_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="P"]
-        call_gexCandleDayVolume = [x['gexCandleDayVolume'] for x in optionchain if x['contract_type']=="C"]
+        call_gexTradeDayVolume = [x['gextradeDayVolume'] for x in optionchain if x['contract_type']=="C"]
         call_gexSummaryOpenInterest = [x['gexSummaryOpenInterest'] for x in optionchain if x['contract_type']=="C"]
         try:
             spot_price = float(underlying[-1]['close'])
@@ -219,9 +219,9 @@ async def gex_plot():
             ticker=ticker,
             spot_price=spot_price,
             strike_list=strike_list,
-            put_gexCandleDayVolume=put_gexCandleDayVolume,
+            put_gexTradeDayVolume=put_gexTradeDayVolume,
             put_gexSummaryOpenInterest=put_gexSummaryOpenInterest,
-            call_gexCandleDayVolume=call_gexCandleDayVolume,
+            call_gexTradeDayVolume=call_gexTradeDayVolume,
             call_gexSummaryOpenInterest=call_gexSummaryOpenInterest,
             underlying=underlying,
             optionchain=optionchain,
