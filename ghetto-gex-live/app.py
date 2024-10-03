@@ -9,12 +9,12 @@ import argparse
 import datetime
 import pandas as pd
 import numpy as np
-
+import requests
 from quart import (
     Quart, render_template, request,
     url_for, jsonify, make_response,
 )
-
+import aiohttp
 import asyncio
 
 from data_utils import (
@@ -54,8 +54,8 @@ async def index():
 
     return await render_template('index.html',session=session,message=message,is_test=is_test)
 
-@app.route('/cancel-sub', methods=['GET'])
-async def cancel_sub():
+@app.route('/cancel', methods=['GET'])
+async def cancel():
     try:
         ticker = request.args.to_dict()['ticker']
         ticker = ticker.upper()
@@ -74,24 +74,37 @@ async def cancel_sub():
 @app.route('/subscribe', methods=['GET'])
 async def subscribe():
     try:
+        ticker = request.args.get('ticker')
+        running_file = get_running_file(ticker)
+        cancel_file = get_cancel_file(ticker)
+        if os.path.exists(cancel_file):
+            os.remove(cancel_file)
+        if not os.path.exists(running_file):
+            app.add_background_task(background_subscribe,ticker,session)
+            mydict = {'message':f"subscribtion added {ticker}"}
+        else:
+            mydict = {'message':f"already subscribed {ticker}"}
+        return jsonify(mydict)
+    except:
+        return jsonify({"message":traceback.format_exc()}),400
+
+@app.route('/start-gex', methods=['GET'])
+async def start_gex():
+    try:
         tickers = request.args.to_dict()['tickers']
         ticker_list = [x.upper() for x in tickers.split(",") if len(x) > 0]
+        myresp_list = []
         for ticker in ticker_list:
-            running_file = get_running_file(ticker)
-            cancel_file = get_cancel_file(ticker)
-            if os.path.exists(cancel_file):
-                os.remove(cancel_file)
-            if not os.path.exists(running_file):
-                app.add_background_task(background_subscribe,ticker,session)
-                resp = await make_response(jsonify({"tickers":ticker}))
-            else:
-                resp = await make_response(jsonify({"message":f"{ticker} job running already"}))
-        # TODO: make up your mind on ticker or tickerS
+            get_url = f"http://background/subscribe?ticker={ticker}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(get_url) as response:
+                    myresp = await response.json()
+                    myresp_list.append(myresp)
+        resp = await make_response(jsonify({"status":myresp_list}))
         resp.headers['HX-Redirect'] = url_for("gex",tickers=ticker)
         return resp
     except:
         return jsonify({"message":traceback.format_exc()}),400
-
 
 @app.route('/gex', methods=['GET'])
 async def gex():
@@ -234,6 +247,7 @@ if __name__ == '__main__':
     )
     parser = argparse.ArgumentParser()
     parser.add_argument("port",type=int)
+    parser.add_argument('-d', '--debug',action='store_true')
     args = parser.parse_args()
-    app.run(debug=True,host="0.0.0.0",port=args.port)
+    app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 

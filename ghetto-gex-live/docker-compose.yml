@@ -13,6 +13,24 @@ services:
         ports:
           - 80:80
         working_dir: /opt/app
+        command: python app.py 80 --debug
+        healthcheck:
+            test: curl -f http://localhost:80/ping || exit 1
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+    background:
+        image: ghetto-gex-live
+        env_file: .env
+        environment:
+            SHARED_DIR: /shared
+        volumes:
+            - shared:/shared
+        restart: always
+        expose:
+          - 80
+        working_dir: /opt/app
         command: python app.py 80
         healthcheck:
             test: curl -f http://localhost:80/ping || exit 1
