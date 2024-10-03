@@ -150,7 +150,9 @@ def get_data(ticker,kind,tstamp_filter):
     else:
         raise NotImplementedError()
 
-
+#
+# TODO: https://apexcharts.com/javascript-chart-demos/heatmap-charts/color-range/
+#
 @app.route('/direction', methods=['GET'])
 async def direction():
     try:
