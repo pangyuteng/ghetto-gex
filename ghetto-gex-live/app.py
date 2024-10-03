@@ -107,7 +107,8 @@ async def gex():
 PRCT_NEG,PRCT_POS = 0.98,1.02
 def get_data(ticker,kind):
     tstamp = now_in_new_york()
-    underlying_df = get_underlying_df(ticker,tstamp,resample=None)
+    dayfilter = tstamp.strftime("%Y-%m-%d")
+    underlying_df = get_underlying_df(ticker,tstamp,resample=None,tstamp_filter=dayfilter)
     if kind == 'underlying':
         underlying_df.replace(np.nan, None,inplace=True)
         if len(underlying_df) == 0:
@@ -124,8 +125,6 @@ def get_data(ticker,kind):
             close = np.nan
 
         price_min, price_max = close*PRCT_NEG,close*PRCT_POS
-        tstamp = now_in_new_york()
-        dayfilter = tstamp.strftime("%Y-%m-%d")
         df = get_gex_df(ticker,tstamp,tstamp_filter=dayfilter)
         if len(df) == 0:
             return []
