@@ -96,8 +96,8 @@ async def start_gex():
         myresp_list = []
         for ticker in ticker_list:
             get_url = f"http://background/subscribe?ticker={ticker}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(get_url) as response:
+            async with aiohttp.ClientSession() as sess:
+                async with sess.get(get_url) as response:
                     myresp = await response.json()
                     myresp_list.append(myresp)
         resp = await make_response(jsonify({"status":myresp_list}))
