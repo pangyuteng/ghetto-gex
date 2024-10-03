@@ -22,7 +22,8 @@ from data_utils import (
     get_cancel_file, get_running_file, 
     background_subscribe, 
     get_underlying_df,get_gex_df,
-    now_in_new_york, get_candle_tstamp_list
+    now_in_new_york, get_candle_tstamp_list,
+    tick_direction,
 )
 
 app = Quart(__name__,
@@ -116,6 +117,7 @@ async def gex():
     except:
         return jsonify({"message":traceback.format_exc()}),400
 
+
 # TODO: need a python df + class for option chains funcs.
 #
 PRCT_NEG,PRCT_POS = 0.98,1.02
@@ -148,6 +150,18 @@ def get_data(ticker,kind,tstamp_filter):
     else:
         raise NotImplementedError()
 
+
+@app.route('/direction', methods=['GET'])
+async def direction():
+    try:
+        trigger_tstamp = now_in_new_york()
+        ticker = request.args.get('ticker')
+        tstamp_filter = request.args.get('tstamp_filter',trigger_tstamp.strftime("%Y-%m-%d"))
+        ret_dict = tick_direction(ticker,tstamp_filter)
+        return jsonify(ret_dict)
+    except:
+        app.logger.error(traceback.format_exc())
+        return jsonify({"message":traceback.format_exc()}),400
 
 @app.route('/gex-plot', methods=['GET'])
 async def gex_plot():

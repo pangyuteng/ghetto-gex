@@ -41,9 +41,11 @@
     <br>
     {% for ticker in ticker_list %}
     <div>
+      
+      <div hx-get="/direction" hx-trigger="load, every 1s" hx-vals='{"ticker":"{{ticker}}"}' hx-target="#direction{{ticker}}" hx-swap="innerHTML"></div>
+      <div hx-get="/gex-plot" hx-trigger="load" hx-vals='{"ticker":"{{ticker}}","refreshonly":false}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
 
-    <div hx-get="/gex-plot" hx-trigger="load" hx-vals='{"ticker":"{{ticker}}","refreshonly":false}' hx-target="#show{{ticker}}" hx-swap="innerHTML"></div>
-
+      <div id="direction{{ticker}}"></div>
     <div id="show{{ticker}}"></div>
 
     <hr>

@@ -276,6 +276,31 @@ def get_underlying_df(ticker,tstamp,resample=None,tstamp_filter=None):
     
     return df
 
+# 
+# https://kb.dxfeed.com/en/data-model/market-events/qd-model-of-market-events.html
+# Direction (tickDirection) — is the more accurate definition of the trend 
+# (
+# 0 - undefined, 
+# 1 — down,
+# 2 — zero down (current price is the same as previous price 
+#                and is lower than the last known price of different value), 
+# 3 — zero (current price is equal to the only known price value suitable for price direction computation), 
+# 4 — zero up (current price is the same as previous price 
+#              and is higher than the last known price of different value), 
+# 5 — up
+# ).
+# 
+def tick_direction(ticker,tstamp_filter):
+    tstamp = now_in_new_york()
+    df = get_gex_df(ticker,tstamp,tstamp_filter)
+    if len(df) == 0:
+        return []
+    pdf = df[df.contract_type=='P']
+    pjson = pdf['tickDirection'].value_counts().to_dict()
+    cdf = df[df.contract_type=='C']
+    cjson = cdf['tickDirection'].value_counts().to_dict()
+    mydict = {"PUTS":pjson,"CALLS":cjson}
+    return mydict
 
 # sample eventSymbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -360,8 +385,10 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
 
         if len(candle_dict)>0:
             tradeDayVolume = trade_dict['dayVolume']
+            tickDirection = trade_dict['tickDirection']
         else:
             tradeDayVolume = 0
+            tickDirection = None
 
         if len(summary_dict)>0:
             summaryOpenInterest = summary_dict['openInterest']
@@ -376,6 +403,7 @@ def get_gex_df(ticker,tstamp,tstamp_filter):
             strike=strike,
             gamma=gamma,
             tradeDayVolume=tradeDayVolume,
+            tickDirection=tickDirection,
             summaryOpenInterest=summaryOpenInterest,
             candleVolume=candleVolume,
         )
