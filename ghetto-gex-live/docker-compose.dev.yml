@@ -1,10 +1,10 @@
 services:
     flask:
         volumes:
-            - shared_sanbox:/shared
+            - shared_sandbox:/shared
             - ${PWD}:/opt/app
     background:
         volumes:
-            - shared_sanbox:/shared
+            - shared_sandbox:/shared
 volumes:
-    shared_sanbox:
+    shared_sandbox:
